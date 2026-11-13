@@ -116,13 +116,21 @@ def ga_sinir(x, nd=2):
     return ondalik(x, nd)
 
 
+def ga_sinir_sifir(x, nd=2):
+    """Null degeri 0 olan GA siniri (kalibrasyon kesisimi): 2 ondalikta 0,00 / -0,00 gorunuyorsa 3 ondalik yazilir."""
+    if nd == 2 and sayi_mi(x) and round(float(x), 2) == 0:
+        return ondalik(x, 3)
+    return ondalik(x, nd)
+
+
 def etki_ga(e, lo, hi, nd=2, oran=True):
-    """oran=True: HR/SHR/OR (1'e yakin sinir ga_sinir ile); False: oran olmayan metrik (T4, T5)."""
+    """oran=True: HR/SHR/OR ve kalibrasyon egimi (null 1, ga_sinir); "sifir": null 0 (ga_sinir_sifir);
+    False: null degeri olmayan metrik (T4, T5)."""
     if not sayi_mi(e):
         return "–"
     if not (sayi_mi(lo) and sayi_mi(hi)):
         return ondalik(e, nd)
-    sinir = ga_sinir if oran else ondalik
+    sinir = ga_sinir_sifir if oran == "sifir" else ga_sinir if oran else ondalik
     return f"{ondalik(e, nd)} ({sinir(lo, nd)}–{sinir(hi, nd)})"
 
 
@@ -553,9 +561,10 @@ def t4():
         satirlar.append(("panel", f"{lab(ANALIZ, tip)}: n = {tam(r0['n'].iloc[0])}, {T('olay', 'events')} = {tam(r0['olay'].iloc[0])}"))
         for mod in MODELLER:
             hucre = [lab(MODEL, mod)]
-            for ad, nd in [("auroc", 3), ("auprc", 3), ("brier", 3), ("kalibrasyon_egimi", 2), ("kalibrasyon_kesisimi", 2)]:
+            for ad, nd, null in [("auroc", 3, False), ("auprc", 3, False), ("brier", 3, False),
+                                 ("kalibrasyon_egimi", 2, True), ("kalibrasyon_kesisimi", 2, "sifir")]:
                 r_ = metrik(m, tip, mod, ad)
-                hucre.append(etki_ga(r_["deger"], r_["alt_95"], r_["ust_95"], nd, oran=False) if r_ is not None else "–")
+                hucre.append(etki_ga(r_["deger"], r_["alt_95"], r_["ust_95"], nd, oran=null) if r_ is not None else "–")
             satirlar.append(hucre)
     if c is not None:
         satirlar.append(("panel", T("AUROC farkı (DeLong)", "Difference in AUROC (DeLong)")))

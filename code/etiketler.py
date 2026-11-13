@@ -85,9 +85,9 @@ DEGISKEN = {
     "basinc_azaltici_cihaz": ("Basınç azaltıcı cihaz", "Pressure-reducing device"),
     "yardimci_cihaz": ("Yardımcı cihaz", "Assistive device"),
     "rn_mobilite_hedefi": ("Hemşire mobilite hedefi kaydı", "Nurse-documented mobility goal"),
-    "ncp_impaired_mobility": ("Bakım planı: Impaired Mobility", "Care plan: Impaired Mobility"),
-    "ncp_activity_intolerance": ("Bakım planı: Activity Intolerance", "Care plan: Activity Intolerance"),
-    "ncp_skin_integrity": ("Bakım planı: Altered Skin Integrity", "Care plan: Altered Skin Integrity"),
+    "ncp_impaired_mobility": ("Bakım planı: Bozulmuş fiziksel mobilite", "Care plan: Impaired Mobility"),
+    "ncp_activity_intolerance": ("Bakım planı: Aktivite intoleransı", "Care plan: Activity Intolerance"),
+    "ncp_skin_integrity": ("Bakım planı: Bozulmuş deri bütünlüğü", "Care plan: Altered Skin Integrity"),
     # Sonuclar (07 ozelligi degil)
     "olay_tipi": ("Sonuç (28. gün)", "Outcome (day 28)"),
     "yeni_by_72_168": ("Yeni BY, 72–168 saat", "New PI, hours 72–168"),
