@@ -1,0 +1,18 @@
+# Veri ve ciktilar (PhysioNet DUA: depoya girmez)
+data/
+outputs/
+outputs_tam/
+hoca_gonderim/
+duckdb_tmp/
+*.zip
+*.parquet
+*.csv.gz
+
+# Ortam ve arac klasorleri
+.venv/
+__pycache__/
+
+# Ic belgeler (depoya girmez)
+*.docx
+*.pdf
+.vscode/

@@ -1,0 +1,117 @@
+﻿degisken_grubu,itemid,label,linksto,onay,gerekce
+am_pac,229638,Discharge Recommendations (AM-PAC),chartevents,0,"AM-PAC: taburculuk onerisi, skor degil"
+am_pac,229636,Test Performed (AM-PAC),chartevents,0,"AM-PAC: testin adi, skor degil"
+am_pac,229633,Basic Mobility (AM-PAC),chartevents,1,Etiket degiskenle birebir uyumlu
+am_pac,229634,Daily Activity (AM-PAC),chartevents,0,"gunluk yasam aktivitesi olcer, mobilite degil; Basic Mobility (229633) kullaniliyor"
+am_pac,229637,Treatments (AM-PAC),chartevents,0,"AM-PAC: uygulanan tedavi, skor degil"
+am_pac,229635,Applied Cognitive (AM-PAC),chartevents,0,"AM-PAC: bilissel alt olcek, mobiliteyle ilgisiz"
+basinc_azaltici_cihaz,224088,Pressure Reducing Device,chartevents,1,Etiket degiskenle birebir uyumlu
+braden_alt,224054,Braden Sensory Perception,chartevents,1,Etiket degiskenle birebir uyumlu
+braden_alt,224055,Braden Moisture,chartevents,1,Etiket degiskenle birebir uyumlu
+braden_alt,224057,Braden Mobility,chartevents,1,Etiket degiskenle birebir uyumlu
+braden_alt,224056,Braden Activity,chartevents,1,Etiket degiskenle birebir uyumlu
+braden_alt,224059,Braden Friction/Shear,chartevents,1,Etiket degiskenle birebir uyumlu
+braden_alt,224058,Braden Nutrition,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224631,Pressure Ulcer Stage #1,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224966,Pressure Ulcer Stage #3,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224965,Pressure Ulcer Stage #2,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224967,Pressure Ulcer Stage #4,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224968,Pressure Ulcer Stage #5,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224971,Pressure Ulcer Stage #8,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224970,Pressure Ulcer Stage #7,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,224969,Pressure Ulcer Stage #6,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,227618,Pressure Ulcer Stage #9,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_eski,227619,Pressure Ulcer Stage #10,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228813,Pressure ulcer #1- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228814,Pressure ulcer #2- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228815,Pressure ulcer #3- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228820,Pressure ulcer #8- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228821,Pressure ulcer #9- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228818,Pressure ulcer #6- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228819,Pressure ulcer #7- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228816,Pressure ulcer #4- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228817,Pressure ulcer #5- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_evre_yeni,228822,Pressure ulcer #10- Stage,chartevents,1,Etiket degiskenle birebir uyumlu
+by_kabulde_var,228649,Pressure Ulcer Present,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228506,Pressure Ulcer #1- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228507,Pressure Ulcer #2- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228508,Pressure Ulcer #3- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_yeni_sablon,229864,Pressure Injury Location,chartevents,1,"Etiket degiskenle birebir uyumlu; yeni Pressure Injury sablonu, evre alani yok"
+by_konum,228511,Pressure Ulcer #6- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228515,Pressure Ulcer #10- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228510,Pressure Ulcer #5- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228513,Pressure Ulcer #8- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228514,Pressure Ulcer #9- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228509,Pressure Ulcer #4- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_konum,228512,Pressure Ulcer #7- Location,chartevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229884,Pressure Ulcer #1- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229883,Pressure ulcer #1- Date Indentified_OLD_1,datetimeevents,0,tam veride kayit yok
+by_tespit_tarihi,229893,Pressure Ulcer #10- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229889,Pressure Ulcer #6- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229890,Pressure Ulcer #7- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229891,Pressure Ulcer #8- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229886,Pressure Ulcer #3- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229888,Pressure Ulcer #5- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229887,Pressure Ulcer #4- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229885,Pressure Ulcer #2- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_tespit_tarihi,229892,Pressure Ulcer #9- Date Indentified,datetimeevents,1,Etiket degiskenle birebir uyumlu
+by_yeni_sablon,229865,No Pressure Injury Present,chartevents,1,"Etiket degiskenle birebir uyumlu; yeni Pressure Injury sablonu, evre alani yok"
+gks,220739,GCS - Eye Opening,chartevents,1,Etiket degiskenle birebir uyumlu
+gks,223900,GCS - Verbal Response,chartevents,1,Etiket degiskenle birebir uyumlu
+gks,223901,GCS - Motor Response,chartevents,1,Etiket degiskenle birebir uyumlu
+jh_hlm,229321,Activity / Mobility (JH-HLM),chartevents,1,Etiket degiskenle birebir uyumlu
+jh_hlm,229319,Activity / Mobility (JH-HLM),chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_activity_intolerance,229327,Activity Intolerance  NCP - Expected outcomes,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_activity_intolerance,229330,Activity Intolerance  NCP - Interventions,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_activity_intolerance,229335,Activity Intolerance NCP - Goal,chartevents,0,tam veride kayit yok
+ncp_activity_intolerance,229333,Activity Intolerance NCP - Plan revised,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_activity_intolerance,229332,Activity Intolerance  NCP - outcomes met,chartevents,0,tam veride kayit yok
+ncp_activity_intolerance,229334,Activity Intolerance  NCP - Problem resolved,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_impaired_mobility,229344,Impaired Mobility NCP - Expected outcomes,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_impaired_mobility,229347,Impaired Mobility  NCP - Interventions,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_impaired_mobility,229350,Impaired Mobility NCP - Plan revised,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_impaired_mobility,229349,Impaired Mobility NCP - Problem resolved,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_skin_integrity,228914,Altered Skin Integrity NCP - Interventions,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_skin_integrity,228911,Altered Skin Integrity NCP - Expected outcomes,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_skin_integrity,229093,Altered Skin Integrity NCP - Problem resolved,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_skin_integrity,229092,Altered Skin Integrity NCP - Plan revised,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_skin_integrity,228912,Altered Skin Integrity NCP - Goal,chartevents,1,Etiket degiskenle birebir uyumlu
+ncp_skin_integrity,228916,Altered Skin Integrity NCP - outcomes met,chartevents,1,Etiket degiskenle birebir uyumlu
+pozisyon,224082,Turn,chartevents,1,Etiket degiskenle birebir uyumlu
+pozisyon,224093,Position,chartevents,1,Etiket degiskenle birebir uyumlu
+rn_mobilite_hedefi,229742,Activity / Mobility (RN Daily Mobility Goal),chartevents,1,Etiket degiskenle birebir uyumlu
+rom,227953,Range of Motion,chartevents,0,Kisitlama (restraint) izlemindeki ROM kontrolu (Done/Not Done); mobilite girisimi degil
+rom,225176,Range of Motion Status,chartevents,1,Etiket degiskenle birebir uyumlu
+rom,224092,Range of Motion Location,chartevents,1,Etiket degiskenle birebir uyumlu
+rom,224067,Range of Motion,chartevents,0,Kisitlama (restraint) izlemindeki ROM kontrolu; 227953 ile ayni kavram
+tedavi_edici_yatak,224087,Therapeutic Bed,chartevents,1,Etiket degiskenle birebir uyumlu
+tedavi_edici_yatak,229604,Therapeutic Bed,chartevents,1,Etiket degiskenle birebir uyumlu
+tedavi_edici_yatak,229858,Therapeutic Bed,chartevents,1,Etiket degiskenle birebir uyumlu
+yardimci_cihaz,228306,Assistance Device,chartevents,1,Etiket degiskenle birebir uyumlu
+yardimci_cihaz,224085,Assistance Device,chartevents,1,Etiket degiskenle birebir uyumlu
+yardimci_cihaz,228867,Assist Device,chartevents,1,Etiket degiskenle birebir uyumlu
+boy,226707,Height,chartevents,1,"Onay: boy (inch), cm'ye cevrilir"
+boy,226730,Height (cm),chartevents,1,Onay: boy (cm)
+kilo,224639,Daily Weight,chartevents,1,Onay: gunluk kilo (kg); kabul kilosu yoksa ilk olcum
+kilo,226531,Admission Weight (lbs.),chartevents,1,"Onay: kabul kilosu (lbs), kg'ye cevrilir"
+kilo,226512,Admission Weight (Kg),chartevents,1,Onay: kabul kilosu (kg)
+kisitlama,227945,Restraint (Non-violent),chartevents,1,"Onay: siddet icermeyen kisitlama, On/Off; On = kisitlama var"
+kisitlama,227962,Restraints (Violent),chartevents,1,"Onay: siddet iceren kisitlama; demoda kayit yok, deger bicimi tam veride 03c'den kontrol edilmeli"
+lab_albumin,50862,Albumin,labevents,1,Onay: serum albumin
+lab_albumin,53085,Albumin,labevents,0,Ret: demoda kayit yok; tam veride kayit varsa 50862 ile ayni test olup olmadigi kontrol edilmeli
+lab_glukoz,50931,Glucose,labevents,1,Onay: serum glukoz
+lab_glukoz,50809,Glucose,labevents,0,Ret: kan gazi glukozu; biyokimya glukozu (50931) kullaniliyor
+lab_glukoz,52569,Glucose,labevents,0,Ret: demoda kayit yok
+lab_hemoglobin,51222,Hemoglobin,labevents,1,Onay: hemogram hemoglobini
+lab_hemoglobin,50811,Hemoglobin,labevents,0,Ret: kan gazi hemoglobini; hemogram hemoglobini (51222) kullaniliyor
+lab_hemoglobin,51640,Hemoglobin,labevents,0,Ret: demoda kayit yok
+lab_kreatinin,50912,Creatinine,labevents,1,Onay: serum kreatinin
+lab_kreatinin,52546,Creatinine,labevents,0,Ret: demoda kayit yok
+lab_laktat,50813,Lactate,labevents,1,Onay: kan gazi laktati (MIMIC'teki ana laktat testi)
+lab_laktat,52442,Lactate,labevents,0,Ret: demoda kayit yok
+lab_laktat,53154,Lactate,labevents,0,Ret: demoda kayit yok
+rass,228096,Richmond-RAS Scale,chartevents,1,"Onay: RASS (-5..+4), metindeki sayi alinir"
+sedatif_deksmedetomidin,225150,Dexmedetomidine (Precedex),inputevents,1,Onay: deksmedetomidin infuzyonu
+sedatif_deksmedetomidin,229420,Dexmedetomidine (Precedex),inputevents,1,Onay: deksmedetomidin infuzyonu (ikinci itemid)
+sedatif_midazolam,221668,Midazolam (Versed),inputevents,1,Onay: midazolam; yalnizca 'Continuous Med' kayitlari infuzyon sayilir
+sedatif_propofol,222168,Propofol,inputevents,1,Onay: propofol; yalnizca 'Continuous Med' kayitlari infuzyon sayilir
