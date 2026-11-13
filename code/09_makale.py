@@ -158,6 +158,7 @@ def lab(sozluk, k):
 _ka = Path("config/kume_adlari.csv")
 KUME_ADLARI = ({(str(r.k), r.kume): r for r in pd.read_csv(_ka, dtype=str, encoding="utf-8-sig").itertuples()}
                if _ka.exists() else {})
+KUME_AD.update({r.ad_tr: (r.ad_tr, r.ad_en) for r in KUME_ADLARI.values()})  # 08'in ad_onayli'si (ad_tr) -> en
 _ka_uyari = set()
 
 

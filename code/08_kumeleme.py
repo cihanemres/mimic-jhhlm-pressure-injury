@@ -11,7 +11,7 @@ Ciktilar (paylasilabilir):
     08a_yorunge_doldurma.csv     blok bazinda kayitli / doldurulan yatis; yatis basina doldurulan blok sayisi
     08b_k_secimi.csv             k = 2-6: BIC, kume buyuklukleri, kume bazinda ortalama bootstrap Jaccard, secilen k
     08c_kume_yorunge.csv/.png/.svg  secilen k icin kume bazinda ortalama yorunge ve %95 GA (tek tek yatis yok);
-                                 ad_onerisi (kurala dayali oneri) ve ad_onayli (ONAYLI_ADLAR) sutunlari
+                                 ad_onerisi (kurala dayali oneri) ve ad_onayli (config/kume_adlari.csv) sutunlari
     08d_tablo1_kume.csv          kumelere gore Tablo 1 (06a bicimi)
     08d2_kume_sonuc_ozeti.csv    kumelere gore yeni BY (28 gun), 72-168 saat yeni BY, bakim plani gorulme orani
                                  (0-72 saat ve YB suresince, ayri sutunlar)
@@ -88,11 +88,12 @@ STRATA = "ilk_yb_birimi"
 GUN = np.array([1, 3, 7, 14, 21, 25])  # 72. saatten sonraki gun (06c ile ayni; 25. gun = 28. gun)
 DONEM = 96  # 72. saatten sonraki 96. saat = YB'deki 168. saat (06j ile ayni bolme)
 NCP = ["ncp_impaired_mobility", "ncp_activity_intolerance", "ncp_skin_integrity"]
-# Onaylanan klinik adlar (20 Ekim 2026, tam veri, tohum 2026, k = 5). Yalnizca k ve kume buyuklukleri ayniysa
-# kullanilir; cozum degisirse ad_onayli bos kalir ve adlar yeniden onaylanmalidir.
-ONAYLI_ADLAR = {5: ((6876, 1014, 2712, 3074, 1567), {
-    "kume_1": "yatakta kalan", "kume_2": "mobilitesi azalan", "kume_3": "gec mobilize olan (36. saat sonrasi)",
-    "kume_4": "erken mobilize olan (12-36. saat)", "kume_5": "bastan mobil"})}
+# Arastirmacilarin verdigi kume adlari (config/kume_adlari.csv; 09 da ayni dosyayi okur). Yalnizca k ve tum kume
+# buyuklukleri dosyadaki yatis sayilariyla ayniysa kullanilir; cozum degisirse ad_onayli bos kalir ve adlar
+# yeniden verilmelidir.
+_ka = Path("config/kume_adlari.csv")
+KUME_ADLARI = (pd.read_csv(_ka, encoding="utf-8-sig") if _ka.exists()
+               else pd.DataFrame(columns=["k", "kume", "yatis", "ad_tr"]))
 satir_hata = []
 
 
@@ -256,7 +257,7 @@ print(f"Kurala gore k = {k_kural}; kullanilan k = {K}")
 
 def ad_oner(m_):
     """Kurala dayali klinik ad onerisi (JH-HLM: 1-3 yatakta/yatak kenari, 4-5 sandalye/ayakta, 6-8 yurume).
-    Kesin ad elle onaylanir (ONAYLI_ADLAR)."""
+    Kesin ad config/kume_adlari.csv'de verilir."""
     erken, gec, ort = m_[:2].mean(), m_[-2:].mean(), m_.mean()
     if ort <= 2.5 and gec - erken < 1.5:
         return "yatakta kalan"
@@ -300,11 +301,12 @@ def yorunge_tablosu(etiket, k, adlar):
 kume, adlar = None, {}
 if K in modeller:
     kume = etiket_serisi(K)
-    boyut = tuple(int((kume == c).sum()) for c in kume_sirali(kume))
-    if K in ONAYLI_ADLAR and boyut == ONAYLI_ADLAR[K][0]:
-        adlar = ONAYLI_ADLAR[K][1]
-    elif K in ONAYLI_ADLAR:
-        print(f"  UYARI: k = {K} kume buyuklukleri onaylanan cozumle ayni degil; ad_onayli bos birakildi")
+    boyut = {c: int((kume == c).sum()) for c in kume_sirali(kume)}
+    ka = KUME_ADLARI[KUME_ADLARI["k"].astype(int) == K]
+    if len(ka) and dict(zip(ka["kume"], ka["yatis"].astype(int))) == boyut:
+        adlar = dict(zip(ka["kume"], ka["ad_tr"]))
+    elif len(ka):
+        print(f"  UYARI: k = {K} kume buyuklukleri config/kume_adlari.csv ile ayni degil; ad_onayli bos birakildi")
     yor = yorunge_tablosu(kume, K, adlar)
     tamsayi(kucuk_hucre_gizle(yor, ["yatis"]), ["yatis"]).to_csv(paylas / "08c_kume_yorunge.csv", index=False,
                                                                   encoding="utf-8-sig")
