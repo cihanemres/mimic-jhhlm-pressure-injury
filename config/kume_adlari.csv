@@ -1,0 +1,9 @@
+﻿k,kume,yatis,ad_tr,ad_en,kaynak
+5,kume_1,6876,Yatakta kalan,Bed-bound,arastirmaci
+5,kume_2,1014,Mobilitesi azalan,Declining mobility,arastirmaci
+5,kume_3,2712,Geç mobilize olan (36. saat sonrası),Late mobilization (after hour 36),arastirmaci
+5,kume_4,3074,Erken mobilize olan (12–36. saat),Early mobilization (hours 12–36),arastirmaci
+5,kume_5,1567,Baştan mobil,Mobile from admission,arastirmaci
+3,kume_1,7400,Yatakta kalan,Bed-bound,arastirmaci
+3,kume_2,5654,Kademeli mobilize olan,Gradually mobilised,arastirmaci
+3,kume_3,2189,Orta düzeyde sabit,Stable moderate,arastirmaci

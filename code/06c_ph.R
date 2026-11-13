@@ -11,8 +11,10 @@
 #      ki-kare ve p degeri, tum atamalarin D2 ile birlestirilmis p degeri (Li, Meng, Raghunathan 1991)
 #   2. Donem bazinda HR: survSplit ile 72-168 saat ve >168 saat; donem x maruziyet etkilesimi
 #      (>168 HR / 72-168 HR) -> 06j_donem_hr.csv
-#   3. Duyarlilik (i): bes karistirici x log(zaman) etkilesimi (tt) -> 06d_modeller.csv
-#      (analiz_kodu i_tt_log_zaman; yalnizca JH-HLM HR'leri)
+#   3. Duyarlilik (i): karistirici x log(zaman) etkilesimi (tt) -> 06d_modeller.csv
+#      (analiz_kodu i_tt_log_zaman; yalnizca JH-HLM HR'leri). Karistiricilar elle secilmez: 1. bolumdeki
+#      cox.zph terim testinde p_birlesik_d2 < 0.05 olanlar (JH-HLM terimleri ve GLOBAL haric; JH-HLM'nin
+#      ihlali 2. bolumde donem bolmeyle ele alinir). Secilenler 06d'nin model sutununa yazilir.
 #   4. jh_4_5 ve jh_6_8 icin Schoenfeld grafigi (ilk atanmis set): yalnizca yumusatilmis beta(t) egrisi
 #      (dogal spline, 4 sd) ve %95 GA bandi; tek tek artik noktasi yok, egri 5.-95. yuzdelik arasinda
 #      -> 06e3_schoenfeld_jhhlm.png / .svg
@@ -33,7 +35,8 @@ maruziyet <- c("jh_4_5", "jh_6_8")
 terimler <- setdiff(names(veri), c("atama", "stay_id", "subject_id", "ilk_yb_birimi", "anchor_year_group",
                                    "sure_saat", "olay_kod_yeni_by"))
 terimler <- terimler[!startsWith(terimler, "yil_")]
-TT <- c("braden_mobilite_disi_en_dusuk", "vazopresor", "sedatif_herhangi", "sofa_24s", "charlson_yassiz")
+TT <- NULL  # tt karistiricilari; 1. bolumde cox.zph sonucundan secilir
+PH_ESIK <- 0.05
 DONEM <- 96  # 72. saatten sonraki 96. saat = YB'deki 168. saat
 STRATA_ADI <- "strata birim x anchor_year_group"
 
@@ -132,6 +135,9 @@ dene("birincil_strata_birim_yil", {
   write.csv(ph, file.path(paylas, "06e2_ph_varsayimi_coxzph.csv"), row.names = FALSE, fileEncoding = "UTF-8")
   print(s[s$terim %in% maruziyet, c("terim", "etki", "alt_95", "ust_95", "p")], row.names = FALSE)
   print(ph[, c("terim", "chisq_ilk_atama", "p_ilk_atama", "p_birlesik_d2")], row.names = FALSE)
+  TT <- ph$terim[!is.na(ph$p_birlesik_d2) & ph$p_birlesik_d2 < PH_ESIK & !ph$terim %in% c(maruziyet, "GLOBAL")]
+  cat("tt icin secilen karistiricilar (cox.zph p_birlesik_d2 <", PH_ESIK, "):",
+      if (length(TT)) paste(TT, collapse = ", ") else "yok", "\n")
 })
 
 # ---- 2. Donem bazinda HR (survSplit) ----
@@ -182,8 +188,9 @@ dene("j_donem_hr", {
   print(sonuc[, c("terim", "donem", "etki", "alt_95", "ust_95", "p")], row.names = FALSE)
 })
 
-# ---- 3. tt: bes karistirici x log(zaman) ----
+# ---- 3. tt: PH varsayimini saglamayan karistiricilar x log(zaman) ----
 dene("i_tt_log_zaman", {
+  if (!length(TT)) stop("tt karistiricisi yok (1. bolum calismadi ya da p < ", PH_ESIK, " olan karistirici yok)")
   q <- u <- un <- list()
   for (i in seq_len(m)) {
     v <- atamalar[[i]]
@@ -196,7 +203,8 @@ dene("i_tt_log_zaman", {
   }
   s <- rubin(q, u, un)
   yeni_06d$tt <- satir_06d(s, "duyarlilik", "i_tt_log_zaman",
-                           "Bes karistirici x log(zaman) etkilesimi (tt), yalnizca JH-HLM HR",
+                           paste0("PH varsayimini saglamayan karistiricilar (cox.zph p < ", PH_ESIK,
+                                  ") x log(zaman) etkilesimi (tt), yalnizca JH-HLM HR"),
                            paste("cause-specific Cox + tt(x * log(saat)):", paste(TT, collapse = ", "), ";",
                                  STRATA_ADI))
   print(s[, c("terim", "etki", "alt_95", "ust_95", "p")], row.names = FALSE)

@@ -13,6 +13,7 @@ Kullanim:
     python code/09_makale.py --cikti outputs_tam --dil en
 """
 import argparse
+import re
 import sys
 import warnings
 from pathlib import Path
@@ -152,7 +153,40 @@ def lab(sozluk, k):
     return (v[0] if DIL == "tr" else v[1]) if v else str(k)
 
 
+# Arastirmacilarin verdigi kume adlari (k, kume, yatis -> ad). Ad yalnizca kume buyuklugu dosyadakiyle ayniysa
+# kullanilir (cozum degisirse eski ad yanlis kumeye gitmesin); degilse uyari verilir ve 08'in adina donulur.
+_ka = Path("config/kume_adlari.csv")
+KUME_ADLARI = ({(str(r.k), r.kume): r for r in pd.read_csv(_ka, dtype=str, encoding="utf-8-sig").itertuples()}
+               if _ka.exists() else {})
+_ka_uyari = set()
+
+
+def _tamsayi_str(x):
+    try:
+        return str(int(float(x)))
+    except (TypeError, ValueError):
+        return str(x)
+
+
+def config_adi(satir):
+    """config/kume_adlari.csv'deki ad (k, kume ve yatis eslesirse); yoksa None."""
+    anahtar = (_tamsayi_str(satir.get("k")), satir.get("kume"))
+    r = KUME_ADLARI.get(anahtar)
+    if r is None:
+        return None
+    if _tamsayi_str(satir.get("yatis")) != _tamsayi_str(r.yatis):
+        if anahtar not in _ka_uyari:
+            _ka_uyari.add(anahtar)
+            print(f"  UYARI: k = {anahtar[0]} {anahtar[1]} yatis sayisi config/kume_adlari.csv ile ayni degil "
+                  f"({_tamsayi_str(satir.get('yatis'))} / {r.yatis}); dosyadaki ad kullanilmadi")
+        return None
+    return r.ad_tr if DIL == "tr" else r.ad_en
+
+
 def kume_adi(satir):
+    ad = config_adi(satir)
+    if ad:
+        return ad
     ad = satir.get("ad_onayli") if isinstance(satir.get("ad_onayli"), str) and satir.get("ad_onayli") else satir.get("ad_onerisi")
     if not isinstance(ad, str) or not ad:
         return satir["kume"]
@@ -460,15 +494,20 @@ def t3():
         satirlar.append([T(tr, en), lab(OLCU, r0["etki_olcusu"]), tam(r0["n"]), tam(r0["olay"])] + hucre)
     sut = [T("Analiz", "Analysis"), T("Ölçü", "Measure"), "n", T("Olay", "Events"),
            f"JH-HLM 4–5 ({GA})", f"JH-HLM 6–8 ({GA})"]
+    # (i) karistiricilari 06c'nin cox.zph'ten sectigi liste; 06d model sutunundan okunur (elle yazilmaz)
+    tt = d.loc[d["analiz_kodu"] == "i_tt_log_zaman", "model"].dropna()
+    tt = re.search(r"log\(saat\)\):\s*(.*?)\s*;", tt.iloc[0]) if len(tt) else None
+    tt = "; ".join(lab(DEGISKEN, k.strip()) for k in tt.group(1).split(",")) if tt else "?"  # etiketlerde virgul var
     apa_tablo("T3_duyarlilik.docx", 3, T("Duyarlılık analizleri", "Sensitivity analyses"), sut, satirlar,
               T("Referans JH-HLM 1–3. (a) ölüm ve canlı taburculuk yarışan olay; (c) olasılık oranı (OA); (d) yalnızca "
                 "evresi bilinen yara kaydı olay; (g) atamasız; (h) en yüksek JH-HLM düzeyi sürekli, HR 1 düzey artış için; "
-                "(i) Braden mobilite dışı, vazopresör, sedatif, SOFA ve Charlson için × log(saat) etkileşimi; (j) strata "
-                "YB birimi × anchor_year_group. SHR = alt dağılım hazard oranı. ",
+                f"(i) orantılı hazard varsayımını sağlamayan karıştırıcılar (cox.zph p < 0,05: {tt}) için × log(saat) "
+                "etkileşimi; (j) strata YB birimi × anchor_year_group. SHR = alt dağılım hazard oranı. ",
                 "Reference JH-HLM 1–3. (a) death and discharge alive as competing events; (c) odds ratio (OR); (d) only "
                 "records with a known stage counted as events; (g) no imputation; (h) highest JH-HLM level as continuous, "
-                "HR per 1-level increase; (i) × log(hour) interaction for Braden non-mobility, vasopressor, sedative, SOFA "
-                "and Charlson; (j) stratified by ICU unit × anchor_year_group. SHR = subdistribution hazard ratio. ")
+                f"HR per 1-level increase; (i) × log(hour) interaction for confounders violating proportional hazards "
+                f"(cox.zph p < .05: {tt}); (j) stratified by ICU unit × anchor_year_group. "
+                "SHR = subdistribution hazard ratio. ")
               + ROBUST_NOT + KISALTMA)
 
 
@@ -704,8 +743,10 @@ def e4():
     y_ = k3[k3["bolum"] == "yorunge"]
     c_ = k3[k3["bolum"] == "cox_hr"]
     satirlar = []
+    arastirmaci = True  # tum adlar config/kume_adlari.csv'den mi
     for c in kume_listesi(y_):
         yy = y_[y_["kume"] == c].sort_values("blok_bas_saat", key=lambda s: s.astype(float))
+        arastirmaci = arastirmaci and config_adi(yy.iloc[0]) is not None
         r_ = c_[c_["kume"] == c]
         satirlar.append([f"{c.replace('kume_', T('Küme ', 'Cluster '))}: {kume_adi(yy.iloc[0])}", tam(yy["yatis"].iloc[0]),
                          f"{ondalik(yy['ortalama_jh_hlm'].iloc[0], 1)} → {ondalik(yy['ortalama_jh_hlm'].iloc[-1], 1)}",
@@ -713,10 +754,13 @@ def e4():
                          "1 (ref.)" if c == "kume_1" else (etki_ga(*r_.iloc[0][["etki", "alt_95", "ust_95"]]) if len(r_) else "–")])
     apa_tablo("E4_k3_duyarlilik.docx", "E4", T("Duyarlılık: üç kümeli çözüm", "Sensitivity: three-cluster solution"),
               [T("Küme", "Cluster"), "n", T("JH-HLM, 0–12 → 60–72 saat", "JH-HLM, h 0–12 → 60–72"), T("Yeni BY, n", "New PI, n"), f"HR ({GA})"],
-              satirlar, T("Ad, kurala dayalı öneridir (onaylanmadı). Ana çözümle birlikte okunduğunda birkaç yatışı ayıran "
-                          "kümelerde olay sayısı ve yörünge yazılmaz. ",
-                          "Names are rule-based suggestions (not approved). Event counts and trajectories are not shown for "
-                          "clusters that would isolate a few stays when read together with the main solution. ") + KISALTMA + " " + GIZLI_NOT)
+              satirlar, (T("Küme adları, ortalama JH-HLM profillerine bakılarak araştırmacılar tarafından verilmiştir. ",
+                           "Cluster labels were assigned by the investigators after inspection of mean JH-HLM profiles. ")
+                         if arastirmaci else
+                         T("Ad, kurala dayalı öneridir (onaylanmadı). ", "Names are rule-based suggestions (not approved). "))
+              + T("Ana çözümle birlikte okunduğunda birkaç yatışı ayıran kümelerde olay sayısı ve yörünge yazılmaz. ",
+                  "Event counts and trajectories are not shown for clusters that would isolate a few stays when read "
+                  "together with the main solution. ") + KISALTMA + " " + GIZLI_NOT)
 
 
 def e5():
