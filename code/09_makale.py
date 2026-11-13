@@ -135,6 +135,7 @@ def n_yuzde(n, yuzde):
 
 
 GA = T("%95 GA", "95% CI")
+HO = T("HO", "HR")  # hazard orani kisaltmasi
 
 # ---------------------------------------------------------------
 # Etiketler
@@ -147,10 +148,10 @@ KUME_AD = {  # ASCII ad (08) -> (tr, en)
     "bastan mobil": ("Baştan mobil", "Mobile from admission"), "gec mobilize olan": ("Geç mobilize olan", "Late mobilization"),
     "erken mobilize olan": ("Erken mobilize olan", "Early mobilization"), "erken yuruyen": ("Erken yürüyen", "Early walking"),
 }
-MODEL = {"L2 lojistik": ("L2 lojistik regresyon", "L2 logistic regression"), "Random Forest": ("Random Forest", "Random forest"),
+MODEL = {"L2 lojistik": ("L2 lojistik regresyon", "L2 logistic regression"), "Random Forest": ("Rastgele orman", "Random forest"),
          "XGBoost": ("XGBoost", "XGBoost"), "Braden toplam (lojistik)": ("Braden toplam (lojistik)", "Braden total (logistic)")}
 ANALIZ = {"ic_dogrulama": ("İç doğrulama (iç içe çapraz doğrulama)", "Internal validation (nested cross-validation)"),
-          "donemsel_dogrulama": ("Dönemsel doğrulama (anchor_year_group)", "Period validation (anchor_year_group)")}
+          "donemsel_dogrulama": ("Dönemsel doğrulama (referans yıl grubu)", "Period validation (anchor_year_group)")}
 DONEM = {"72-168 saat": ("72–168 saat", "72–168 h"), ">168 saat": ("> 168 saat", "> 168 h")}
 ANALIZ_KISA = {"ic_dogrulama": ("iç doğrulama", "internal validation"),
                "donemsel_dogrulama": ("dönemsel doğrulama", "period validation")}
@@ -333,16 +334,16 @@ def gerekli(ad):
     return df
 
 
-ROBUST_NOT = T("Cox, Fine-Gray ve lojistik modellerde standart hatalar hasta düzeyinde kümelenmiştir (robust sandwich; aynı "
-                "hastanın birden fazla YB yatışı); kümelenmemiş GA'lar Ek Tablo E6'da. ",
+ROBUST_NOT = T("Cox, Fine-Gray ve lojistik modellerde standart hatalar hasta düzeyinde kümelenmiştir (dayanıklı sandöviç; aynı "
+                "hastanın birden fazla YBÜ yatışı); kümelenmemiş GA'lar Ek Tablo E6'da. ",
                 "In Cox, Fine-Gray and logistic models standard errors are clustered at the patient level (robust sandwich; "
                 "patients with more than one ICU stay); non-clustered CIs are given in Supplementary Table E6. ")
 GIZLI_NOT = T('"<5": 1–4 arası sayı; "gizli": küçük bir hücreyi geri hesaplatmasın diye gizlenen sayı (PhysioNet '
               'veri kullanım sözleşmesi).',
               '"<5": count between 1 and 4; "suppressed": count withheld so that a small cell cannot be '
               'back-calculated (PhysioNet data use agreement).')
-KISALTMA = T("BY = basınç yarası; GA = güven aralığı; HR = hazard oranı; JH-HLM = Johns Hopkins Highest Level of "
-             "Mobility; YB = yoğun bakım.",
+KISALTMA = T("BY = basınç yaralanması; GA = güven aralığı; HO = hazard oranı; JH-HLM = Johns Hopkins En Yüksek "
+             "Mobilite Düzeyi; YBÜ = yoğun bakım ünitesi.",
              "CI = confidence interval; HR = hazard ratio; ICU = intensive care unit; JH-HLM = Johns Hopkins Highest "
              "Level of Mobility; PI = pressure injury.")
 
@@ -363,7 +364,7 @@ def tablo1_satirlari(t, gruplar, ref, degiskenler):
         if x.empty:
             continue
         if x["tip"].iloc[0] == "sayisal":
-            hucre = [f"{lab(DEG, v)}, {T('medyan (ÇAA)', 'median (IQR)')}"]
+            hucre = [f"{lab(DEG, v)}, {T('ortanca (ÇAA)', 'median (IQR)')}"]
             for g in gruplar:
                 r_ = x[x["grup"] == g].iloc[0]
                 hucre.append(f"{esnek(r_['medyan'])} ({esnek(r_['q1'])}–{esnek(r_['q3'])})" if sayi_mi(r_["medyan"]) else "–")
@@ -400,7 +401,7 @@ def t1():
     apa_tablo("T1_kohort_ozellikleri.docx", 1,
               T("JH-HLM grubuna göre kohort özellikleri (0–72 saat)", "Cohort characteristics by JH-HLM group (hours 0–72)"),
               sut, satirlar, T("JH-HLM grubu 0–72 saatteki en yüksek düzeye göredir. SMD, JH-HLM 1–3'e göre standartlaştırılmış "
-                              "ortalama farktır. Yüzdeler dolu kayıtlar içindir. 100'den az yatışı olan YB birimleri "
+                              "ortalama farktır. Yüzdeler dolu kayıtlar içindir. 100'den az yatışı olan YBÜ birimleri "
                               "\"Diğer\" olarak birleştirildi. ",
                               "JH-HLM group is based on the highest level in hours 0–72. SMD = standardized mean difference "
                               "versus JH-HLM 1–3. Percentages are of non-missing records. ICU units with fewer than 100 "
@@ -443,18 +444,19 @@ def t2():
         satirlar.append([T("JH-HLM en yüksek düzey, 1 düzey artış", "JH-HLM highest level, per 1-level increase"),
                          etki_ga(h["etki"], h["alt_95"], h["ust_95"]), p_bicim(h["p"])] + ["–"] * 6)
     b0 = satir_bul(d, "birincil", "jh_4_5")
-    sut = [T("Maruziyet", "Exposure"), f"HR ({GA})", "p", f"HR ({GA}),\n{T('strata birim × dönem', 'strata unit × period')}",
-           f"HR ({GA}),\n{lab(DONEM, '72-168 saat')}", f"HR ({GA}),\n{lab(DONEM, '>168 saat')}",
-           T("Etkileşim p", "Interaction p"), T("E-değeri\n(HR)", "E-value\n(HR)"), T("E-değeri\n(sık sonuç)", "E-value\n(common outcome)")]
+    sut = [T("Maruziyet", "Exposure"), f"{HO} ({GA})", "p", f"{HO} ({GA}),\n{T('birim × dönem tabakalı', 'strata unit × period')}",
+           f"{HO} ({GA}),\n{lab(DONEM, '72-168 saat')}", f"{HO} ({GA}),\n{lab(DONEM, '>168 saat')}",
+           T("Etkileşim p", "Interaction p"), T("E-değeri\n(HO)", "E-value\n(HR)"), T("E-değeri\n(sık sonuç)", "E-value\n(common outcome)")]
     n_txt = f"n = {tam(b0['n'])}, {T('olay', 'events')} = {tam(b0['olay'])}" if b0 is not None else ""
     apa_tablo("T2_birincil_cox.docx", 2,
-              T("JH-HLM ile yeni basınç yarası: birincil cause-specific Cox modeli", "JH-HLM and new pressure injury: primary cause-specific Cox model"),
+              T("JH-HLM ile yeni basınç yaralanması: birincil nedene özgü Cox modeli", "JH-HLM and new pressure injury: primary cause-specific Cox model"),
               sut, satirlar,
-              T(f"{n_txt}. Cause-specific Cox; karıştırıcılar: yaş, cinsiyet, BKİ, SOFA, mekanik ventilasyon, vazopresör, "
-                "sedatif, RASS, fiziksel kısıtlama, Braden mobilite dışı skor, Charlson, dönem; strata ilk YB birimi; MICE "
-                "(m = 20), Rubin kuralları. Dönem bazında HR ve etkileşim (> 168 saat HR / 72–168 saat HR) strata birim × "
-                "dönem modelinden (dönem kuklası yok). E-değeri: nokta tahmini / GA'nın 1'e yakın sınırı; \"HR\" sürümü "
-                "HR'yi risk oranı sayar, \"sık sonuç\" sürümü VanderWeele (2017) dönüşümünü kullanır. ",
+              T(f"{n_txt}. Nedene özgü Cox modeli; karıştırıcılar: yaş, cinsiyet, BKİ, SOFA, mekanik ventilasyon, vazopresör, "
+                "sedatif, RASS, fiziksel kısıtlama, Braden mobilite dışı skor, Charlson, referans yıl grubu; tabaka: ilk YBÜ "
+                "birimi; çoklu atama (m = 20), Rubin kuralları. Dönem bazında HO ve etkileşim (> 168 saat HO / 72–168 saat "
+                "HO) birim × dönem tabakalı modelden (dönem için kukla değişken yok). E-değeri: nokta tahmini / GA'nın 1'e "
+                "yakın sınırı; \"HO\" sürümü HO'yi risk oranı sayar, \"sık sonuç\" sürümü VanderWeele (2017) dönüşümünü "
+                "kullanır. ",
                 f"{n_txt}. Cause-specific Cox model adjusted for age, sex, BMI, SOFA, mechanical ventilation, vasopressor, "
                 "sedative, RASS, physical restraint, Braden non-mobility score, Charlson index and period; stratified by "
                 "first ICU unit; multiple imputation (m = 20) pooled with Rubin's rules. Period-specific HRs and the "
@@ -477,9 +479,13 @@ DUYARLILIK = [  # kod, tr, en
     ("g_tam_kayit", "(g) Tam kayıtlı analiz", "(g) Complete-case analysis"),
     ("h_jh_surekli", "(h) JH-HLM sürekli (1 düzey)", "(h) JH-HLM continuous (per level)"),
     ("i_tt_log_zaman", "(i) Karıştırıcı × log(zaman) etkileşimi", "(i) Confounder × log(time) interaction"),
-    ("birincil_strata_birim_yil", "(j) Strata birim × dönem", "(j) Strata unit × period"),
+    ("birincil_strata_birim_yil", "(j) Birim × dönem tabakalı", "(j) Strata unit × period"),
 ]
-OLCU = {"HR": ("HR", "HR"), "OR": ("OA", "OR"), "SHR": ("SHR", "SHR")}
+TT_KISA = {"yas": "yaş", "cinsiyet": "cinsiyet", "bmi": "BKİ", "sofa_24s": "SOFA", "mekanik_ventilasyon": "mekanik ventilasyon",
+           "vazopresor": "vazopresör", "sedatif_herhangi": "sedatif", "rass_en_dusuk": "RASS",
+           "fiziksel_kisitlama": "fiziksel kısıtlama", "braden_mobilite_disi_en_dusuk": "Braden mobilite dışı",
+           "charlson_yassiz": "Charlson"}  # T3 notu (i), TR: makaledeki kisa adlar
+OLCU = {"HR": ("HO", "HR"), "OR": ("OA", "OR"), "SHR": ("SHR", "SHR")}
 
 
 def t3():
@@ -507,12 +513,16 @@ def t3():
     # (i) karistiricilari 06c'nin cox.zph'ten sectigi liste; 06d model sutunundan okunur (elle yazilmaz)
     tt = d.loc[d["analiz_kodu"] == "i_tt_log_zaman", "model"].dropna()
     tt = re.search(r"log\(saat\)\):\s*(.*?)\s*;", tt.iloc[0]) if len(tt) else None
-    tt = "; ".join(lab(DEGISKEN, k.strip()) for k in tt.group(1).split(",")) if tt else "?"  # etiketlerde virgul var
+    tt = [k.strip() for k in tt.group(1).split(",")] if tt else []
+    tt = (("; ".join(lab(DEGISKEN, k) for k in tt) if DIL == "en"  # etiketlerde virgul var
+           else ", ".join(TT_KISA.get(k, k) for k in tt[:-1]) + " ve " * (len(tt) > 1) + TT_KISA.get(tt[-1], tt[-1]))
+          if tt else "?")
     apa_tablo("T3_duyarlilik.docx", 3, T("Duyarlılık analizleri", "Sensitivity analyses"), sut, satirlar,
               T("Referans JH-HLM 1–3. (a) ölüm ve canlı taburculuk yarışan olay; (c) olasılık oranı (OA); (d) yalnızca "
-                "evresi bilinen yara kaydı olay; (g) atamasız; (h) en yüksek JH-HLM düzeyi sürekli, HR 1 düzey artış için; "
-                f"(i) orantılı hazard varsayımını sağlamayan karıştırıcılar (cox.zph p < 0,05: {tt}) için × log(saat) "
-                "etkileşimi; (j) strata YB birimi × anchor_year_group. SHR = alt dağılım hazard oranı. ",
+                "evresi bilinen yara kaydı olay; (g) atamasız; (h) en yüksek JH-HLM düzeyi sürekli, HO 1 düzey artış için; "
+                f"(i) birim × yıl tabakalı modelde Schoenfeld testinde p < 0,05 olan karıştırıcılar ({tt}) için × "
+                "log(saat) etkileşimi; (j) YBÜ birimi × referans yıl grubuna göre tabakalama. SHR = alt dağılım hazard "
+                "oranı. ",
                 "Reference JH-HLM 1–3. (a) death and discharge alive as competing events; (c) odds ratio (OR); (d) only "
                 "records with a known stage counted as events; (g) no imputation; (h) highest JH-HLM level as continuous, "
                 f"HR per 1-level increase; (i) × log(hour) interaction for confounders violating proportional hazards "
@@ -558,11 +568,11 @@ def t4():
     sut = [T("Model", "Model"), f"AUROC ({GA})", f"AUPRC ({GA})", f"Brier ({GA})", T(f"Kalibrasyon eğimi ({GA})", f"Calibration slope ({GA})"),
            T(f"Kalibrasyon kesişimi ({GA})", f"Calibration intercept ({GA})")]
     apa_tablo("T4_model_performansi.docx", 4,
-              T("72–168 saatte yeni basınç yarası tahmini: model performansı", "Prediction of new pressure injury in hours 72–168: model performance"),
+              T("72–168 saatte yeni basınç yaralanması tahmini: model performansı", "Prediction of new pressure injury in hours 72–168: model performance"),
               sut, satirlar,
               T("Tahminler 0–72 saat verileriyle. İç doğrulama: hasta düzeyinde 5 katlı iç içe çapraz doğrulama, metrikler "
-                "birleştirilmiş kat dışı tahminlerde. Dönemsel doğrulama: anchor_year_group 2008–2016 eğitim, 2017–2022 "
-                "test; anchor_year_group takvim yılı değil, kaydırılmış tarihlerin düştüğü dönemdir. GA 1000 yüzdelik "
+                "birleştirilmiş kat dışı tahminlerde. Dönemsel doğrulama: referans yıl grubu 2008–2016 eğitim, 2017–2022 "
+                "test; referans yıl grubu takvim yılı değil, kaydırılmış tarihlerin düştüğü dönemdir. GA 1000 yüzdelik "
                 "bootstrap; AUROC farkının GA'sı DeLong standart hatasından. Modeller ağırlıksız (dengesizlik düzeltmesi yok). "
                 "AUPRC = kesinlik-duyarlılık eğrisi altındaki alan; AUROC = ROC eğrisi altındaki alan.",
                 "Predictions use data from hours 0–72. Internal validation: patient-level 5-fold nested cross-validation; "
@@ -593,7 +603,7 @@ def t5():
                 hucre.append(etki_ga(o["deger"], o["alt_95"], o["ust_95"], oran=False) if o is not None else "–")
             satirlar.append(hucre)
     sut = [T("Kesim noktası", "Cut-off"), T("Duyarlılık", "Sensitivity"), T("Özgüllük", "Specificity"), T("PKD", "PPV"),
-           T("NKD", "NPV"), T("Özgüllük, L2\nlojistik", "Specificity,\nL2 logistic"), T("Özgüllük,\nRandom Forest", "Specificity,\nrandom forest"),
+           T("NKD", "NPV"), T("Özgüllük, L2\nlojistik", "Specificity,\nL2 logistic"), T("Özgüllük,\nRastgele orman", "Specificity,\nrandom forest"),
            T("Özgüllük,\nXGBoost", "Specificity,\nXGBoost")]
     apa_tablo("T5_braden_kesim.docx", 5,
               T("Braden kesim noktaları ve aynı duyarlılıkta modellerin özgüllüğü", "Braden cut-offs and model specificity at the same sensitivity"),
@@ -632,7 +642,7 @@ def t6():
         r_ = oz[(oz["grup"] == c) & (oz["degisken"] == deg)]
         return n_yuzde(r_.iloc[0][sut], r_.iloc[0][yz]) if len(r_) else "–"
 
-    satirlar = [("panel", T("A. Tanım, sonuç ve yeni basınç yarası ile ilişki", "A. Definition, outcome and association with new pressure injury"))]
+    satirlar = [("panel", T("A. Tanım, sonuç ve yeni basınç yaralanması ile ilişki", "A. Definition, outcome and association with new pressure injury"))]
     for c in kumeler:
         y_ = yor[yor["kume"] == c].sort_values("blok_bas_saat", key=lambda s: s.astype(float))
         ilk, son = y_["ortalama_jh_hlm"].iloc[0], y_["ortalama_jh_hlm"].iloc[-1]
@@ -656,7 +666,7 @@ def t6():
         alt_baslik = [""]
         for d_ in planlar:
             ad_ = lab(DEG, d_).split(": ")[-1]
-            alt_baslik += [f"{ad_},\n{T('0–72 saat', 'h 0–72')}", f"{ad_},\n{T('YB süresince', 'ICU stay')}"]
+            alt_baslik += [f"{ad_},\n{T('0–72 saat', 'h 0–72')}", f"{ad_},\n{T('YBÜ süresince', 'ICU stay')}"]
         satirlar.append(alt_baslik + [""] * (9 - len(alt_baslik)))
         for c in kumeler:
             hucre = [f"{c.replace('kume_', T('Küme ', 'Cluster '))}"]
@@ -665,16 +675,16 @@ def t6():
             satirlar.append(hucre + [""] * (9 - len(hucre)))
     sut = [T("Küme", "Cluster"), "n (%)", T("JH-HLM, 0–12 → 60–72 saat", "JH-HLM, h 0–12 → 60–72"),
            T("Yeni BY, n (%)", "New PI, n (%)"), T("Yeni BY 72–168 saat, n (%)", "New PI h 72–168, n (%)"),
-           f"HR ({GA})", f"HR ({GA}),\n{lab(DONEM, '72-168 saat')}", f"HR ({GA}),\n{lab(DONEM, '>168 saat')}",
+           f"{HO} ({GA})", f"{HO} ({GA}),\n{lab(DONEM, '72-168 saat')}", f"{HO} ({GA}),\n{lab(DONEM, '>168 saat')}",
            T("Etkileşim p", "Interaction p")]
     sut_b = ""
     apa_tablo("T6_mobilite_kumeleri.docx", 6,
               T("0–72 saat JH-HLM yörüngesine göre mobilite kümeleri (keşfedici)", "Mobility clusters by JH-HLM trajectory in hours 0–72 (exploratory)"),
               sut, satirlar,
-              T("Gaussian Mixture, altı 12 saatlik blokta en yüksek JH-HLM. JH-HLM sütunu ilk ve son bloğun ortalamasıdır. "
-                "Yeni BY 72. saat ile 28. gün arası, YB süresince. HR birincil Cox modeliyle aynı karıştırıcılar ve strata, "
-                "MICE; referans küme 1. Dönem HR'leri takip 168. saatte bölünerek; etkileşim > 168 saat HR / 72–168 saat HR. "
-                "Bakım planı 0–72 saat ve YB süresince (giriş–çıkış) ayrı pencerelerde. ",
+              T("Gauss karışım modeli; altı 12 saatlik blokta en yüksek JH-HLM. JH-HLM sütunu ilk ve son bloğun ortalamasıdır. "
+                "Yeni BY 72. saat ile 28. gün arası, YBÜ süresince. HO birincil Cox modeliyle aynı karıştırıcılar ve tabaka, "
+                "çoklu atama; referans küme 1. Dönem HO'leri takip 168. saatte bölünerek; etkileşim > 168 saat HO / 72–168 "
+                "saat HO. Bakım planı 0–72 saat ve YBÜ süresince (giriş–çıkış) ayrı pencerelerde. ",
                 "Gaussian mixture on the highest JH-HLM level in six 12-hour blocks. The JH-HLM column gives the mean of the "
                 "first and last block. New PI from hour 72 to day 28 during the ICU stay. HRs adjusted for the same "
                 "confounders and strata as the primary Cox model, multiple imputation; reference cluster 1. Period HRs from "
@@ -697,15 +707,15 @@ def e1():
         eksik = 100 - float(r_["doluluk_yuzde"]) if sayi_mi(r_["doluluk_yuzde"]) else np.nan
         satirlar.append([lab(DEG, r_["degisken"]) if r_["degisken"] in DEG else r_["degisken"], tam(r_["bos"]),
                          ondalik(eksik, 1), T("evet", "yes") if r_["degisken"] in atanan else T("hayır", "no")])
-    not_ = T("Eksik = 0–72 saat penceresinde kaydı olmayan yatış. MICE: birincil modelde atanan değişkenler (m = 20). ",
+    not_ = T("Eksik = 0–72 saat penceresinde kaydı olmayan yatış. Çoklu atama: birincil modelde atanan değişkenler (m = 20). ",
              "Missing = stays without a record in hours 0–72. MICE: variables imputed for the primary model (m = 20). ")
     if mice is not None:
         b = mice[mice["olcu"].notna()].set_index("olcu")["deger"]
         if len(b):
-            not_ += T(f"Atanan BKİ aralığı {ondalik(b.get('min'), 1)}–{ondalik(b.get('max'), 1)} (medyan {ondalik(b.get('medyan'), 1)}). ",
+            not_ += T(f"Atanan BKİ aralığı {ondalik(b.get('min'), 1)}–{ondalik(b.get('max'), 1)} (ortanca {ondalik(b.get('medyan'), 1)}). ",
                       f"Imputed BMI range {ondalik(b.get('min'), 1)}–{ondalik(b.get('max'), 1)} (median {ondalik(b.get('medyan'), 1)}). ")
     apa_tablo("E1_eksik_veri.docx", "E1", T("Eksik veri", "Missing data"),
-              [T("Değişken", "Variable"), T("Eksik, n", "Missing, n"), T("Eksik, %", "Missing, %"), T("MICE ile atandı", "Imputed (MICE)")],
+              [T("Değişken", "Variable"), T("Eksik, n", "Missing, n"), T("Eksik, %", "Missing, %"), T("Çoklu atama", "Imputed (MICE)")],
               satirlar, not_ + GIZLI_NOT)
 
 
@@ -718,13 +728,14 @@ def e2():
     apa_tablo("E2_schoenfeld.docx", "E2", T("Orantılı hazard varsayımı (Schoenfeld artıkları, cox.zph)",
                                             "Proportional hazards assumption (Schoenfeld residuals, cox.zph)"),
               [T("Terim", "Term"), "χ²", T("sd", "df"), T("p, ilk atama", "p, first imputation"), T("p, D2 birleşik", "p, pooled (D2)")],
-              satirlar, T("Birincil cause-specific Cox modeli, strata YB birimi × anchor_year_group, rank zaman dönüşümü. "
-                          "D2: 20 atamanın ki-kare istatistiklerinin birleştirilmesi (Li, Meng ve Raghunathan, 1991).",
-                          "Primary cause-specific Cox model stratified by ICU unit × anchor_year_group, rank time transform. "
-                          "D2: pooled chi-square statistics across 20 imputations (Li, Meng and Raghunathan, 1991)."))
+              satirlar, T("Birim × yıl tabakalı nedene özgü Cox modeli (Tablo 3, j); sıra (rank) zaman dönüşümü. "
+                          "D2: 20 atamanın ki-kare istatistiklerinin birleştirilmesi (Li vd., 1991).",
+                          "Cause-specific Cox model stratified by ICU unit × anchor_year_group (Table 3, j), rank time "
+                          "transform. D2: pooled chi-square statistics across 20 imputations (Li et al., 1991)."))
 
 
-ALT_DEG = {"cinsiyet": ("Cinsiyet", "Sex"), "yas_grubu": ("Yaş grubu", "Age group"), "ilk_yb_birimi": ("YB birimi", "ICU unit")}
+ALT_DEG = {"cinsiyet": ("Cinsiyet", "Sex"), "yas_grubu": ("Yaş grubu", "Age group"), "ilk_yb_birimi": ("YBÜ birimi", "ICU unit")}
+YAS_GRUBU = {"<65": ("65 altı", "<65"), "65-79": ("65–79", "65–79"), "80+": ("80 ve üstü", "80+")}
 
 
 def e3():
@@ -737,7 +748,7 @@ def e3():
         satirlar.append(("panel", lab(ANALIZ, tip)))
         for (deg, ag), y_ in x.groupby(["alt_grup_degiskeni", "alt_grup"], sort=False):
             r0 = y_.iloc[0]
-            hucre = [f"{lab(ALT_DEG, deg)}: {lab(KATEGORI, ag)}", tam(r0["n"]), tam(r0["olay"])]
+            hucre = [f"{lab(ALT_DEG, deg)}: {lab(YAS_GRUBU if deg == 'yas_grubu' else KATEGORI, ag)}", tam(r0["n"]), tam(r0["olay"])]
             for mod in MODELLER:
                 r_ = y_[y_["model"] == mod]
                 hucre.append(etki_ga(*r_.iloc[0][["auroc", "alt_95", "ust_95"]], nd=3) if len(r_) else "–")
@@ -763,7 +774,7 @@ def e4():
                          tam(r_.iloc[0]["kume_olay"]) if len(r_) else "–",
                          "1 (ref.)" if c == "kume_1" else (etki_ga(*r_.iloc[0][["etki", "alt_95", "ust_95"]]) if len(r_) else "–")])
     apa_tablo("E4_k3_duyarlilik.docx", "E4", T("Duyarlılık: üç kümeli çözüm", "Sensitivity: three-cluster solution"),
-              [T("Küme", "Cluster"), "n", T("JH-HLM, 0–12 → 60–72 saat", "JH-HLM, h 0–12 → 60–72"), T("Yeni BY, n", "New PI, n"), f"HR ({GA})"],
+              [T("Küme", "Cluster"), "n", T("JH-HLM, 0–12 → 60–72 saat", "JH-HLM, h 0–12 → 60–72"), T("Yeni BY, n", "New PI, n"), f"{HO} ({GA})"],
               satirlar, (T("Küme adları, ortalama JH-HLM profillerine bakılarak araştırmacılar tarafından verilmiştir. ",
                            "Cluster labels were assigned by the investigators after inspection of mean JH-HLM profiles. ")
                          if arastirmaci else
@@ -815,7 +826,7 @@ def e6():
                         f"{lab(JH, r_['terim']) if r_['terim'] in JH else T('JH-HLM, 1 düzey', 'JH-HLM, per level')}")
     j = oku("06j_donem_hr.csv")
     if j is not None:
-        ekle(T("Dönem bazında HR (06j)", "Period-specific HR"), j,
+        ekle(T("Dönem bazında HO (06j)", "Period-specific HR"), j,
              lambda r_: f"{lab(JH, r_['terim'])}, " + (lab(DONEM, r_["donem"]) if r_["donem"] in DONEM
                                                       else T("etkileşim", "interaction")))
     yor = oku("08c_kume_yorunge.csv")
@@ -835,12 +846,12 @@ def e6():
     apa_tablo("E6_robust_karsilastirma.docx", "E6",
               T("Kümelenmemiş ve hasta düzeyinde kümelenmiş standart hatalarla güven aralıkları",
                 "Confidence intervals with non-clustered and patient-clustered standard errors"),
-              [T("Analiz / terim", "Analysis / term"), T("HR / OA", "HR / OR"), T(f"{GA}, kümelenmemiş", f"{GA}, non-clustered"),
-               T(f"{GA}, robust (hasta kümesi)", f"{GA}, robust (patient cluster)"), T("p, kümelenmemiş", "p, non-clustered"),
-               T("p, robust", "p, robust")], satir,
-              T("Nokta tahminleri iki yöntemde aynıdır; yalnızca standart hata değişir. Robust: Lin-Wei sandwich, "
-                "subject_id kümesi (R: coxph cluster(subject_id); Python: lifelines cluster_col). MICE, Rubin kuralları. "
-                "Ana tablolarda robust GA kullanılır. (c) lojistik regresyonda etki ölçüsü olasılık oranıdır (OA; "
+              [T("Analiz / terim", "Analysis / term"), T("HO / OA", "HR / OR"), T(f"{GA}, kümelenmemiş", f"{GA}, non-clustered"),
+               T(f"{GA}, dayanıklı (hasta kümesi)", f"{GA}, robust (patient cluster)"), T("p, kümelenmemiş", "p, non-clustered"),
+               T("p, dayanıklı", "p, robust")], satir,
+              T("Nokta tahminleri iki yöntemde aynıdır; yalnızca standart hata değişir. Dayanıklı: Lin-Wei sandöviç, "
+                "subject_id kümesi (R: coxph cluster(subject_id); Python: lifelines cluster_col). Çoklu atama, Rubin "
+                "kuralları. Ana tablolarda dayanıklı GA kullanılır. (c) lojistik regresyonda etki ölçüsü olasılık oranıdır (OA; "
                 "statsmodels cov_type = \"cluster\"). ",
                 "Point estimates are identical; only the standard error differs. Robust: Lin-Wei sandwich clustered on "
                 "subject_id (R: coxph cluster(subject_id); Python: lifelines cluster_col). Multiple imputation, Rubin's "
@@ -853,9 +864,9 @@ def e6():
 # Sekiller
 # ---------------------------------------------------------------
 AKIS = {  # 04a adimi -> (dahil kutusu, dislanma gerekcesi) tr / en
-    "Tum YB yatislari": (("Tüm YB yatışları", None), ("All ICU stays", None)),
+    "Tum YB yatislari": (("Tüm YBÜ yatışları", None), ("All ICU stays", None)),
     "Yas >= 18": (("≥ 18 yaş", "< 18 yaş"), ("Age ≥ 18 years", "Age < 18 years")),
-    "YB'de >= 72 saat": (("YB'de ≥ 72 saat", "YB'de < 72 saat"), ("ICU stay ≥ 72 h", "ICU stay < 72 h")),
+    "YB'de >= 72 saat": (("YBÜ'de ≥ 72 saat", "YBÜ'de < 72 saat"), ("ICU stay ≥ 72 h", "ICU stay < 72 h")),
     "0-72. saatte >= 1 gecerli JH-HLM": (("0–72. saatte ≥ 1 geçerli JH-HLM", "0–72. saatte geçerli JH-HLM yok"),
                                          ("≥ 1 valid JH-HLM in hours 0–72", "No valid JH-HLM in hours 0–72")),
     "Kabulde basinc yarasi isareti yok": (("Kabulde BY işareti yok", "Kabulde BY işareti var"),
@@ -923,7 +934,7 @@ def s2():
     ax_r.set_ylim(-0.5, len(gruplar) + 0.5)
     ax.set_xticks(gunler)
     ax.set_xlim(-0.5, max(gunler) + 0.5)
-    ax.set_xlabel(T("72. saatten sonraki gün (25. gün = YB girişinden sonraki 28. gün)",
+    ax.set_xlabel(T("72. saatten sonraki gün (25. gün = YBÜ girişinden sonraki 28. gün)",
                     "Days after hour 72 (day 25 = day 28 after ICU admission)"))
     ax.xaxis.set_tick_params(labelbottom=True)
     fig.tight_layout()
@@ -974,7 +985,7 @@ def s3():
     ax.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([0.125, 0.25, 0.5, 1, 2, 4, 8]))
     ax.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
     ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: ondalik(v, 2 if v < 1 else 0)))
-    ax.set_xlabel(f"HR ({GA}, {T('log ölçek', 'log scale')})")
+    ax.set_xlabel(f"{HO} ({GA}, {T('log ölçek', 'log scale')})")
     ax.spines["left"].set_visible(False)
     ax.tick_params(axis="y", length=0)
     fig.tight_layout()
@@ -1070,7 +1081,7 @@ def s7():
         cz, = ax.plot(x, ort, "o-", ms=3, label=f"{c.replace('kume_', T('Küme ', 'Cluster '))}: {kume_adi(g.iloc[0])} (n = {tam(g['yatis'].iloc[0])})")
         ax.fill_between(x, pd.to_numeric(g["alt_95"], errors="coerce"), pd.to_numeric(g["ust_95"], errors="coerce"),
                         color=cz.get_color(), alpha=0.2, lw=0)
-    ax.set(xlabel=T("YB girişinden sonraki saat (12 saatlik blok)", "Hours after ICU admission (12-hour blocks)"),
+    ax.set(xlabel=T("YBÜ girişinden sonraki saat (12 saatlik blok)", "Hours after ICU admission (12-hour blocks)"),
            ylabel=T(f"JH-HLM (ortalama, {GA})", f"JH-HLM (mean, {GA})"), xticks=range(0, 73, 12), ylim=(1, 8),
            yticks=range(1, 9))
     ax.legend(fontsize=7, frameon=False)

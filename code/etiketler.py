@@ -17,8 +17,8 @@ DEGISKEN = {
     "kilo_kg": ("Kilo (kg)", "Weight (kg)"),
     "bmi": ("BKİ (kg/m²)", "BMI (kg/m²)"),
     "kabul_tipi": ("Kabul tipi", "Admission type"),
-    "ilk_yb_birimi": ("İlk YB birimi", "First ICU unit"),
-    "anchor_year_group": ("Dönem (anchor_year_group)", "Period (anchor_year_group)"),
+    "ilk_yb_birimi": ("İlk YBÜ birimi", "First ICU unit"),
+    "anchor_year_group": ("Referans yıl grubu", "Period (anchor_year_group)"),
     # Hastalik agirligi ve tedavi
     "sofa_24s": ("SOFA (ilk 24 saat)", "SOFA (first 24 h)"),
     "sofa_solunum": ("SOFA solunum (ilk 24 saat)", "SOFA respiratory (first 24 h)"),
@@ -96,7 +96,7 @@ DEGISKEN = {
 # Kategorik degiskenlerin kategorileri -> (tr, en). YB birimlerinin Ingilizce adlari MIMIC-IV'teki adlardir.
 KATEGORI = {
     "F": ("Kadın", "Female"), "M": ("Erkek", "Male"),
-    "yeni_by": ("Yeni BY", "New PI"), "yb_olum": ("YB ölümü", "ICU death"),
+    "yeni_by": ("Yeni BY", "New PI"), "yb_olum": ("YBÜ ölümü", "ICU death"),
     "taburculuk": ("Canlı taburculuk", "Discharged alive"), "sansur": ("İdari sansür", "Administrative censoring"),
     "diger": ("Diğer (birleştirilmiş)", "Other (merged)"),
     "1-3": ("1–3", "1–3"), "4-5": ("4–5", "4–5"), "6-8": ("6–8", "6–8"),
@@ -111,18 +111,18 @@ KATEGORI = {
     "SURGICAL SAME DAY ADMISSION": ("Aynı gün cerrahi yatış", "Surgical same-day admission"),
     "URGENT": ("İvedi", "Urgent"),
     # YB birimleri
-    "Cardiac Vascular Intensive Care Unit (CVICU)": ("Kalp-damar cerrahisi YB (CVICU)",
+    "Cardiac Vascular Intensive Care Unit (CVICU)": ("Kalp-damar cerrahisi YBÜ (CVICU)",
                                                      "Cardiac Vascular Intensive Care Unit (CVICU)"),
-    "Coronary Care Unit (CCU)": ("Koroner YB (CCU)", "Coronary Care Unit (CCU)"),
-    "Medical Intensive Care Unit (MICU)": ("Dahili YB (MICU)", "Medical Intensive Care Unit (MICU)"),
-    "Medical/Surgical Intensive Care Unit (MICU/SICU)": ("Dahili/cerrahi YB (MICU/SICU)",
+    "Coronary Care Unit (CCU)": ("Koroner YBÜ (CCU)", "Coronary Care Unit (CCU)"),
+    "Medical Intensive Care Unit (MICU)": ("Dahili YBÜ (MICU)", "Medical Intensive Care Unit (MICU)"),
+    "Medical/Surgical Intensive Care Unit (MICU/SICU)": ("Dahili/cerrahi YBÜ (MICU/SICU)",
                                                          "Medical/Surgical Intensive Care Unit (MICU/SICU)"),
     "Neuro Intermediate": ("Nöroloji ara bakım", "Neuro Intermediate"),
     "Neuro Stepdown": ("Nöroloji basamak bakım", "Neuro Stepdown"),
-    "Neuro Surgical Intensive Care Unit (Neuro SICU)": ("Nöroşirürji YB (Neuro SICU)",
+    "Neuro Surgical Intensive Care Unit (Neuro SICU)": ("Nöroşirürji YBÜ (Neuro SICU)",
                                                         "Neuro Surgical Intensive Care Unit (Neuro SICU)"),
-    "Surgical Intensive Care Unit (SICU)": ("Cerrahi YB (SICU)", "Surgical Intensive Care Unit (SICU)"),
-    "Trauma SICU (TSICU)": ("Travma cerrahi YB (TSICU)", "Trauma SICU (TSICU)"),
+    "Surgical Intensive Care Unit (SICU)": ("Cerrahi YBÜ (SICU)", "Surgical Intensive Care Unit (SICU)"),
+    "Trauma SICU (TSICU)": ("Travma cerrahi YBÜ (TSICU)", "Trauma SICU (TSICU)"),
 }
 
 KUKLA_KAYNAK = ["cinsiyet", "kabul_tipi", "ilk_yb_birimi", "jh_hlm_grup"]  # 07'deki kategorik ozellikler
