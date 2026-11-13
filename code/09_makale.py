@@ -109,12 +109,21 @@ def p_bicim(x):
     return s if DIL == "tr" else s.lstrip("0")
 
 
-def etki_ga(e, lo, hi, nd=2):
+def ga_sinir(x, nd=2):
+    """Oran GA siniri: 2 ondalikta 1,00 gorunuyorsa (GA'nin 1'i icerip icermedigi okunamaz) 3 ondalik yazilir."""
+    if nd == 2 and sayi_mi(x) and round(float(x), 2) == 1:
+        return ondalik(x, 3)
+    return ondalik(x, nd)
+
+
+def etki_ga(e, lo, hi, nd=2, oran=True):
+    """oran=True: HR/SHR/OR (1'e yakin sinir ga_sinir ile); False: oran olmayan metrik (T4, T5)."""
     if not sayi_mi(e):
         return "–"
     if not (sayi_mi(lo) and sayi_mi(hi)):
         return ondalik(e, nd)
-    return f"{ondalik(e, nd)} ({ondalik(lo, nd)}–{ondalik(hi, nd)})"
+    sinir = ga_sinir if oran else ondalik
+    return f"{ondalik(e, nd)} ({sinir(lo, nd)}–{sinir(hi, nd)})"
 
 
 def n_yuzde(n, yuzde):
@@ -536,7 +545,7 @@ def t4():
             hucre = [lab(MODEL, mod)]
             for ad, nd in [("auroc", 3), ("auprc", 3), ("brier", 3), ("kalibrasyon_egimi", 2), ("kalibrasyon_kesisimi", 2)]:
                 r_ = metrik(m, tip, mod, ad)
-                hucre.append(etki_ga(r_["deger"], r_["alt_95"], r_["ust_95"], nd) if r_ is not None else "–")
+                hucre.append(etki_ga(r_["deger"], r_["alt_95"], r_["ust_95"], nd, oran=False) if r_ is not None else "–")
             satirlar.append(hucre)
     if c is not None:
         satirlar.append(("panel", T("AUROC farkı (DeLong)", "Difference in AUROC (DeLong)")))
@@ -578,10 +587,10 @@ def t5():
                 continue
             sonra = r_["duyarlilik"].get("belirleme") == "sonradan_eklenen"
             hucre = [f"Braden ≤ {k}{'ᵃ' if sonra else ''}"]
-            hucre += [etki_ga(r_[x]["deger"], r_[x]["alt_95"], r_[x]["ust_95"]) for x in ["duyarlilik", "ozgulluk", "ppd", "npd"]]
+            hucre += [etki_ga(r_[x]["deger"], r_[x]["alt_95"], r_[x]["ust_95"], oran=False) for x in ["duyarlilik", "ozgulluk", "ppd", "npd"]]
             for mod in ["L2 lojistik", "Random Forest", "XGBoost"]:
                 o = metrik(m, tip, mod, f"ozgulluk_braden{k}_duyarliliginda")
-                hucre.append(etki_ga(o["deger"], o["alt_95"], o["ust_95"]) if o is not None else "–")
+                hucre.append(etki_ga(o["deger"], o["alt_95"], o["ust_95"], oran=False) if o is not None else "–")
             satirlar.append(hucre)
     sut = [T("Kesim noktası", "Cut-off"), T("Duyarlılık", "Sensitivity"), T("Özgüllük", "Specificity"), T("PKD", "PPV"),
            T("NKD", "NPV"), T("Özgüllük, L2\nlojistik", "Specificity,\nL2 logistic"), T("Özgüllük,\nRandom Forest", "Specificity,\nrandom forest"),
@@ -788,8 +797,8 @@ def e6():
         satir.append(("panel", baslik))
         for _, r_ in df.iterrows():
             et = etiket(r_)
-            satir.append([et, ondalik(r_["etki"]), f"{ondalik(r_['alt_95_naif'])}–{ondalik(r_['ust_95_naif'])}",
-                          f"{ondalik(r_['alt_95'])}–{ondalik(r_['ust_95'])}", p_bicim(r_.get("p_naif")), p_bicim(r_["p"])])
+            satir.append([et, ondalik(r_["etki"]), f"{ga_sinir(r_['alt_95_naif'])}–{ga_sinir(r_['ust_95_naif'])}",
+                          f"{ga_sinir(r_['alt_95'])}–{ga_sinir(r_['ust_95'])}", p_bicim(r_.get("p_naif")), p_bicim(r_["p"])])
             kayit.append({"bolum": baslik, "terim": et, **{k: r_.get(k) for k in
                           ["etki", "alt_95_naif", "ust_95_naif", "alt_95", "ust_95", "p_naif", "p", "se_naif", "se"]}})
 
