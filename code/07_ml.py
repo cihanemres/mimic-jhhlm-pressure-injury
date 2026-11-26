@@ -8,6 +8,9 @@ Iki dogrulama; her ciktida analiz_tipi:
                         hiperparametre), 2017-2022 grubu test. anchor_year_group takvim yili degil, hastanin
                         kaydirilmis yillarinin dustugu donemdir (README). Iki tarafta da olan hasta test tarafindan
                         cikarilir (07g'de sayisi).
+Ozellikler: Charlson ve bilesenleri (CHARLSON) taburculukta kodlanan ICD tanilarindan gelir, 72. saatte
+bilinmez; birincil modellere girmez (bilgi sizintisi). Charlson'li surum yalnizca duyarlilik (07b/07c_*_charlsonlu).
+SHAP, karar egrisi, Braden kesimleri ve alt gruplar birincil (Charlson'siz) modelden.
 Modeller: L2 lojistik, Random Forest, XGBoost. Taban: Braden toplam (lojistik, 0-72 saatteki en dusuk) ve
 Braden kesim noktalari: <= 18 onceden belirlenmis; <= 12 ve <= 14 sonradan eklenen. Dengesizlik duzeltmesi yok (agirlik, SMOTE yok; kalibrasyon korunur). Eksik veri: XGBoost
 dogal; LR ve RF icin egitim katinda fit edilen medyan atama + eksiklik gostergesi (pipeline icinde).
@@ -22,6 +25,9 @@ Ciktilar (paylasilabilir, kucuk hucre gizli):
     07e_hiperparametreler.csv   secilen hiperparametreler (dis kat / donemsel)
     07f_shap_ozet.csv           ortalama |SHAP| (en iyi agac modeli, donemsel test seti)
     07g_bolme.csv               egitim/test yatis, hasta ve olay sayilari
+    07b_metrikler_charlsonlu.csv  duyarlilik: Charlson ve bilesenleri eklenmis uc model (ayni bolmeler, ayni bootstrap
+                                orneklemleri); 07b ile ayni sutunlar
+    07c_auroc_farki_charlsonlu.csv  AUROC farki (DeLong): Charlson'li - birincil (ayni model)
     07h_egri_noktalari.csv      grafiklerin toplu noktalari (09 makale sekilleri icin; tek tek tahmin ya da her esikteki
                                 ham ROC noktasi yok): ROC (0-1 arasi 100 noktalik sabit 1 - ozgulluk izgarasinda
                                 dogrusal enterpole duyarlilik), kalibrasyon ondaliklari (5'ten az olayli dilim gizli),
@@ -29,7 +35,7 @@ Ciktilar (paylasilabilir, kucuk hucre gizli):
     07_<grafik>_<analiz_tipi>.png/.svg  ROC, PR, kalibrasyon, karar egrisi; 07_shap_*.png/.svg
     07z_hatalar.csv
 Yalnizca ozel: 07_modeller/ (egitilmis modeller: ic_kat<k>_<model>.joblib ve ic_katlar.joblib ic dogrulamanin
-dis katlari, <model>.joblib donemsel egitim seti), 07_tahminler.parquet, 07_shap_beeswarm.png.
+dis katlari, <model>.joblib donemsel egitim seti; Charlson'li surum charlsonlu_ onekiyle), 07_tahminler.parquet, 07_shap_beeswarm.png.
 
 --yalnizca-degerlendirme: hiperparametre aramasi ve egitim yapilmaz; 07_modeller/ altindaki kayitli modeller
 yuklenir, metrikler, grafikler, SHAP ve alt gruplar yeniden uretilir (07e korunur). Kayitli model yoksa durur;
@@ -100,9 +106,11 @@ BRADEN = "braden_toplam_en_dusuk"
 # Braden kesim noktalari (<= k risk var). 18 protokolde onceden belirlenmis; 12 ve 14 tam veri sonuclarindan sonra
 # eklendi (kohortta neredeyse herkes <= 18). Ciktida "belirleme" sutunu.
 BRADEN_KESIMLER = {18: "onceden_belirlenmis", 12: "sonradan_eklenen", 14: "sonradan_eklenen"}
-# Disarida: kimlik, yil grubu (donemsel bolmenin degiskeni), AM-PAC (dolu %6), sonuc ve zaman degiskenleri.
+# Disarida: kimlik, yil grubu (donemsel bolmenin degiskeni), AM-PAC (dolu %6), sonuc ve zaman degiskenleri,
+# Charlson ve bilesenleri (taburculuk ICD kodlari, 72. saatte bilinmez; yalnizca duyarlilik modelinde).
 # Basinc yarasi tani kodlari (ICD-9 707.0x, ICD-10 L89) 05'te hicbir degiskene girmez.
-HARIC = {"stay_id", "subject_id", "anchor_year_group", "am_pac_ilk", "am_pac_en_dusuk"}
+CHARLSON = ["charlson", "charlson_yassiz", "diyabet", "periferik_damar", "kalp_yetmezligi"]
+HARIC = {"stay_id", "subject_id", "anchor_year_group", "am_pac_ilk", "am_pac_en_dusuk", *CHARLSON}
 HARIC_ONEK = ("sure_saat", "olay_tipi", "yeni_by_72_168")
 KATEGORIK = ["cinsiyet", "kabul_tipi", "ilk_yb_birimi", "jh_hlm_grup"]
 AGAC = ["Random Forest", "XGBoost"]
@@ -131,6 +139,7 @@ ham["ilk_yb_birimi"] = ham["ilk_yb_birimi"].where(~ham["ilk_yb_birimi"].isin(bir
 kaynak = [s for s in ham.columns if s not in HARIC and not s.startswith(HARIC_ONEK)]
 X = pd.get_dummies(ham[kaynak], columns=KATEGORIK, dtype=float).astype(float)
 X.columns = [str(c).replace("[", "(").replace("]", ")").replace("<", "lt") for c in X.columns]  # XGBoost adlari
+X_ch = pd.concat([X, ham[CHARLSON].astype(float)], axis=1)  # duyarlilik: Charlson'li ozellik seti
 y = ham[HEDEF].to_numpy().astype(int)
 grup = ham["subject_id"].to_numpy()
 # Braden yoksa risk yok sayilir (07g'de sayisi)
@@ -192,21 +201,27 @@ def model_yolu(ad, onek):
     return model_klasor / f"{onek}{ad.replace(' ', '_').lower()}.joblib"
 
 
-def egit_tahmin(e, t, analiz_tipi, kat, onek):
+def egit_tahmin(e, t, analiz_tipi, kat, onek, charlsonlu=False):
     """e ile egit (yalnizca degerlendirmede kayitli modeli yukle), t'ye tahmin. Donus: model adi -> tahmin.
-    Modeller onek ile kaydedilir; hiperparametreler listeye, modeller 'egitilmis' sozlugune."""
+    Modeller onek ile kaydedilir; hiperparametreler listeye, birincil modeller 'egitilmis' sozlugune.
+    charlsonlu: X_ch ile uc model (Braden lojistik yok; Braden toplam iki sette ayni)."""
+    Xm = X_ch if charlsonlu else X
     tah = {}
     for ad, (model, dagilim) in modeller().items():
         if DEGERLENDIRME:
             m = joblib.load(model_yolu(ad, onek))
         else:
-            s = ayarla(model, dagilim, X.iloc[e], y[e], grup[e])
+            s = ayarla(model, dagilim, Xm.iloc[e], y[e], grup[e])
             m = s.best_estimator_
-            hiper.append({"analiz_tipi": analiz_tipi, "kat": kat, "model": ad, "ic_cd_auroc": s.best_score_,
+            hiper.append({"analiz_tipi": analiz_tipi, "ozellik_seti": "charlsonlu" if charlsonlu else "birincil",
+                          "kat": kat, "model": ad, "ic_cd_auroc": s.best_score_,
                           "parametreler": str({k: getattr(v, "item", lambda: v)() for k, v in s.best_params_.items()})})
             joblib.dump(m, model_yolu(ad, onek))
-        tah[ad] = m.predict_proba(X.iloc[t])[:, 1]
-        egitilmis[(analiz_tipi, ad)] = m
+        tah[ad] = m.predict_proba(Xm.iloc[t])[:, 1]
+        if not charlsonlu:
+            egitilmis[(analiz_tipi, ad)] = m
+    if charlsonlu:
+        return tah
     if DEGERLENDIRME:
         bl = joblib.load(model_yolu("braden_lojistik", onek))
     else:
@@ -257,13 +272,30 @@ try:
     print("  donemsel dogrulama tamam")
 except Exception as e:
     hata_kaydet("donemsel_dogrulama", e)
+
+# (c) Duyarlilik: Charlson'li ozellik seti; birincil modelle ayni dis katlar ve donemsel bolme
+tahminler_ch = {}
+for tip, (ind, _) in list(tahminler.items()):
+    try:
+        if tip == "ic_dogrulama":
+            oof = {}
+            for k, (e, t) in enumerate(katlar):
+                for ad, pr in egit_tahmin(e, t, tip, k + 1, f"charlsonlu_ic_kat{k + 1}_", charlsonlu=True).items():
+                    oof.setdefault(ad, np.full(len(y), np.nan))[t] = pr
+            tahminler_ch[tip] = (ind, oof)
+        else:
+            tahminler_ch[tip] = (ind, egit_tahmin(np.flatnonzero(egitim), ind, tip, "egitim 2008-2016", "charlsonlu_",
+                                                  charlsonlu=True))
+        print(f"  {tip} (Charlson'li duyarlilik) tamam")
+    except Exception as e:
+        hata_kaydet(f"charlsonlu_{tip}", e)
 bolme.append({"analiz_tipi": "her ikisi", "kume": "Braden toplam yok (Braden kesim noktalarinda risk yok sayildi)",
               "yatis": int(ham[BRADEN].isna().sum()), "hasta": len(set(grup[ham[BRADEN].isna()])),
               "olay": int(y[ham[BRADEN].isna()].sum())})
 kucuk_hucre_gizle(pd.DataFrame(bolme, columns=["analiz_tipi", "kume", "yatis", "hasta", "olay"]),
                   ["yatis", "hasta", "olay"]).to_csv(paylas / "07g_bolme.csv", index=False, encoding="utf-8-sig")
 if not DEGERLENDIRME:
-    pd.DataFrame(hiper, columns=["analiz_tipi", "kat", "model", "ic_cd_auroc", "parametreler"]).to_csv(
+    pd.DataFrame(hiper, columns=["analiz_tipi", "ozellik_seti", "kat", "model", "ic_cd_auroc", "parametreler"]).to_csv(
         paylas / "07e_hiperparametreler.csv", index=False, encoding="utf-8-sig")
 
 
@@ -305,7 +337,7 @@ def ga(fonk, n, boot_i):
             for k, v in nokta.items()]
 
 
-metrik, farklar, altlar = [], [], []
+metrik, farklar, altlar, metrik_ch, farklar_ch = [], [], [], [], []
 for tip, (ind, tah) in tahminler.items():
     try:
         yt, kt = y[ind], {k: kb[ind] for k, kb in kesim.items()}
@@ -323,6 +355,18 @@ for tip, (ind, tah) in tahminler.items():
         for k, kb in kt.items():
             metrik += [{**temel, "model": KESIM_AD[k], **r}
                        for r in ga(lambda i: kesim_olcumleri(yt[i], kb[i]), len(yt), boot_i)]
+        # Duyarlilik: Charlson'li modeller, ayni bootstrap orneklemleri; DeLong Charlson'li - birincil
+        try:
+            for ad, pr in tahminler_ch.get(tip, (None, {}))[1].items():
+                metrik_ch += [{**temel, "model": ad, **r}
+                              for r in ga(lambda i: olcumler(yt[i], pr[i], {k: kb[i] for k, kb in kt.items()}),
+                                          len(yt), boot_i)]
+                fark, se, p_d = delong(yt, pr, tah[ad])
+                farklar_ch.append({"analiz_tipi": tip, "model": ad, "auroc_charlsonlu": roc_auc_score(yt, pr),
+                                   "auroc_birincil": roc_auc_score(yt, tah[ad]), "auroc_farki": fark,
+                                   "alt_95": fark - 1.96 * se, "ust_95": fark + 1.96 * se, "p_delong": p_d})
+        except Exception as e:
+            hata_kaydet(f"metrikler_charlsonlu_{tip}", e)
         # Alt gruplar: olay ve olaysiz en az 5 ise AUROC
         for deg in alt_grup.columns:
             for ag, m in alt_grup.iloc[ind].groupby(deg, observed=True).indices.items():
@@ -341,13 +385,17 @@ for tip, (ind, tah) in tahminler.items():
         hata_kaydet(f"metrikler_{tip}", e)
 
 sutun = ["analiz_tipi", "model", "metrik", "deger", "alt_95", "ust_95", "n", "olay", "bootstrap_tekrar", "belirleme"]
-mt = pd.DataFrame(metrik, columns=sutun)
-mt["belirleme"] = "onceden_belirlenmis"
-for k, b in BRADEN_KESIMLER.items():
-    mt.loc[(mt["model"] == KESIM_AD[k]) | (mt["metrik"] == f"ozgulluk_braden{k}_duyarliliginda"), "belirleme"] = b
-kucuk_hucre_gizle(mt, ["n", "olay"]).to_csv(paylas / "07b_metrikler.csv", index=False, encoding="utf-8-sig")
+for liste, dosya in [(metrik_ch, "07b_metrikler_charlsonlu.csv"), (metrik, "07b_metrikler.csv")]:  # mt: birincil kalir
+    mt = pd.DataFrame(liste, columns=sutun)
+    mt["belirleme"] = "onceden_belirlenmis"
+    for k, b in BRADEN_KESIMLER.items():
+        mt.loc[(mt["model"] == KESIM_AD[k]) | (mt["metrik"] == f"ozgulluk_braden{k}_duyarliliginda"), "belirleme"] = b
+    kucuk_hucre_gizle(mt, ["n", "olay"]).to_csv(paylas / dosya, index=False, encoding="utf-8-sig")
 pd.DataFrame(farklar, columns=["analiz_tipi", "model", "karsilastirma", "auroc_farki", "alt_95", "ust_95",
                                "p_delong"]).to_csv(paylas / "07c_auroc_farki.csv", index=False, encoding="utf-8-sig")
+pd.DataFrame(farklar_ch, columns=["analiz_tipi", "model", "auroc_charlsonlu", "auroc_birincil", "auroc_farki", "alt_95",
+                                  "ust_95", "p_delong"]).to_csv(paylas / "07c_auroc_farki_charlsonlu.csv", index=False,
+                                                                encoding="utf-8-sig")
 ag = pd.DataFrame(altlar, columns=["analiz_tipi", "alt_grup_degiskeni", "alt_grup", "model", "n", "olay", "auroc",
                                    "alt_95", "ust_95"])
 # Kucuk hucre: 1-4 "<5"; bir alt grup degiskeninde tek gizli kalirsa (toplam bilindiginden) en kucuk ikinci "gizli"
@@ -533,4 +581,8 @@ pd.DataFrame(satir_hata, columns=["analiz", "hata"]).to_csv(paylas / "07z_hatala
 if len(mt):
     print(mt[mt["metrik"].isin(["auroc", "auprc"])][["analiz_tipi", "model", "metrik", "deger", "alt_95", "ust_95"]]
           .to_string(index=False))
+if farklar_ch:
+    print("\nDuyarlilik, Charlson'li - birincil AUROC:")
+    print(pd.DataFrame(farklar_ch)[["analiz_tipi", "model", "auroc_charlsonlu", "auroc_birincil", "auroc_farki",
+                                    "p_delong"]].to_string(index=False))
 print(f"\n{len(satir_hata)} analizde hata (07z_hatalar.csv). Ciktilar: {paylas}")

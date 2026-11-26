@@ -349,6 +349,9 @@ tam_kayit = d.dropna(subset=TEMEL)
 cox_analizi("duyarlilik", "g_tam_kayit", "Tam kayitli analiz (atamasiz)", "yeni_by", TEMEL, [tam_kayit])
 cox_analizi("duyarlilik", "h_jh_surekli", "JH-HLM surekli (en yuksek duzey, 1 birim)", "yeni_by",
             ["jh_hlm_en_yuksek"] + KARISTIRICI + YIL, atanmis)
+# Charlson taburculukta kodlanan ICD tanilarindan gelir (72. saatte bilinmez); (i) ve (j) R'da (06c_ph.R)
+cox_analizi("duyarlilik", "k_charlsonsuz", "Charlson cikarilmis (taburculuk kodlari)", "yeni_by",
+            [s for s in TEMEL if s != "charlson_yassiz"], atanmis)
 satir_model.append({"analiz_tipi": "duyarlilik", "analiz_kodu": "a_fine_gray",
                     "analiz": "Fine-Gray: code/06b_fine_gray.R -> 06i_fine_gray.csv"})
 

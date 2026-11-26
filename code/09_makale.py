@@ -2,7 +2,7 @@
 
 Girdi YALNIZCA <cikti>/paylasilabilir/ dosyalari (ozel/ okunmaz) ve config/itemids_onayli.csv (ek tablo; kayit ve
 yatis sayisi sutunlari alinmaz). Gizlenmis hucreler ("<5", "gizli") aynen yazilir.
-Cikti: <cikti>/makale_<dil>/ (T1-T6, E1-E5 .docx; S1-S7 .png/.svg; 09z_atlananlar.csv: girdisi olmayan ya da hata
+Cikti: <cikti>/makale_<dil>/ (T1-T6, E1-E7 .docx; S1-S7 .png/.svg; 09z_atlananlar.csv: girdisi olmayan ya da hata
 veren tablo/sekiller). Hangi tablo/seklin hangi csv'den geldigi README "Makale tablolari ve sekilleri (09)".
 
 Bicim: tr ondalik virgul, binlik nokta, "p < 0,001", "%95 GA"; en ondalik nokta, binlik virgul, "p < .001" (APA:
@@ -488,6 +488,7 @@ DUYARLILIK = [  # kod, tr, en
     ("h_jh_surekli", "(h) JH-HLM sürekli (1 düzey)", "(h) JH-HLM continuous (per level)"),
     ("i_tt_log_zaman", "(i) Karıştırıcı × log(zaman) etkileşimi", "(i) Confounder × log(time) interaction"),
     ("birincil_strata_birim_yil", "(j) Birim × dönem tabakalı", "(j) Strata unit × period"),
+    ("k_charlsonsuz", "(k) Charlson çıkarılmış", "(k) Charlson index removed"),
 ]
 TT_KISA = {"yas": "yaş", "cinsiyet": "cinsiyet", "bmi": "BKİ", "sofa_24s": "SOFA", "mekanik_ventilasyon": "mekanik ventilasyon",
            "vazopresor": "vazopresör", "sedatif_herhangi": "sedatif", "rass_en_dusuk": "RASS",
@@ -529,12 +530,14 @@ def t3():
               T("Referans JH-HLM 1–3. (a) ölüm ve canlı taburculuk yarışan olay; (c) olasılık oranı (OA); (d) yalnızca "
                 "evresi bilinen yara kaydı olay; (g) atamasız; (h) en yüksek JH-HLM düzeyi sürekli, HO 1 düzey artış için; "
                 f"(i) birim × yıl tabakalı modelde Schoenfeld testinde p < 0,05 olan karıştırıcılar ({tt}) için × "
-                "log(saat) etkileşimi; (j) YBÜ birimi × referans yıl grubuna göre tabakalama. SHR = alt dağılım hazard "
+                "log(saat) etkileşimi; (j) YBÜ birimi × referans yıl grubuna göre tabakalama; (k) karıştırıcılardan "
+                "Charlson çıkarıldı (taburculukta kodlanan tanılardan gelir, 72. saatte bilinmez). SHR = alt dağılım hazard "
                 "oranı. ",
                 "Reference JH-HLM 1–3. (a) death and discharge alive as competing events; (c) odds ratio (OR); (d) only "
                 "records with a known stage counted as events; (g) no imputation; (h) highest JH-HLM level as continuous, "
                 f"HR per 1-level increase; (i) × log(hour) interaction for confounders violating proportional hazards "
-                f"(cox.zph p < .05: {tt}); (j) stratified by ICU unit × anchor_year_group. "
+                f"(cox.zph p < .05: {tt}); (j) stratified by ICU unit × anchor_year_group; (k) Charlson index removed "
+                "from the confounders (derived from diagnoses coded at discharge, unknown at hour 72). "
                 "SHR = subdistribution hazard ratio. ")
               + ROBUST_NOT + KISALTMA)
 
@@ -583,12 +586,16 @@ def t4():
                 "birleştirilmiş kat dışı tahminlerde. Dönemsel doğrulama: referans yıl grubu 2008–2016 eğitim, 2017–2022 "
                 "test; referans yıl grubu takvim yılı değil, kaydırılmış tarihlerin düştüğü dönemdir. GA 1000 yüzdelik "
                 "bootstrap; AUROC farkının GA'sı DeLong standart hatasından. Modeller ağırlıksız (dengesizlik düzeltmesi yok). "
+                "Charlson indeksi ve bileşenleri (taburculukta kodlanan tanılar, 72. saatte bilinmez) modellere girmedi; "
+                "eklendiğinde AUROC Ek Tablo E7'de. "
                 "AUPRC = kesinlik-duyarlılık eğrisi altındaki alan; AUROC = ROC eğrisi altındaki alan.",
                 "Predictions use data from hours 0–72. Internal validation: patient-level 5-fold nested cross-validation; "
                 "metrics on pooled out-of-fold predictions. Period validation: anchor_year_group 2008–2016 for training and "
                 "2017–2022 for testing; anchor_year_group is not a calendar year but the period into which the shifted dates "
                 "fall. CIs from 1000 percentile bootstrap replicates; CI of the AUROC difference from the DeLong standard "
-                "error. Models are unweighted (no class-imbalance correction). AUPRC = area under the precision-recall curve; "
+                "error. Models are unweighted (no class-imbalance correction). The Charlson index and its components (diagnoses "
+                "coded at discharge, unknown at hour 72) were not used as predictors; AUROC with them added is in "
+                "Supplementary Table E7. AUPRC = area under the precision-recall curve; "
                 "AUROC = area under the ROC curve."), yatay=True)
 
 
@@ -869,6 +876,46 @@ def e6():
               yatay=True)
 
 
+def e7():
+    """Duyarlilik: Charlson ve bilesenleri eklenmis modeller (07b/07c_*_charlsonlu) ve birincil modeller (07b)."""
+    m_ch = gerekli("07b_metrikler_charlsonlu.csv")
+    m = oku("07b_metrikler.csv")
+    c = oku("07c_auroc_farki_charlsonlu.csv")
+    satirlar = []
+    for tip in ["ic_dogrulama", "donemsel_dogrulama"]:
+        r0 = m_ch[m_ch["analiz_tipi"] == tip]
+        if r0.empty:
+            continue
+        satirlar.append(("panel", f"{lab(ANALIZ, tip)}: n = {tam(r0['n'].iloc[0])}, {T('olay', 'events')} = {tam(r0['olay'].iloc[0])}"))
+        for mod in MODELLER[:3]:
+            hucre = [lab(MODEL, mod)]
+            for df in [m, m_ch]:
+                r_ = metrik(df, tip, mod, "auroc") if df is not None else None
+                hucre.append(etki_ga(r_["deger"], r_["alt_95"], r_["ust_95"], 3, oran=False) if r_ is not None else "–")
+            f_ = c[(c["analiz_tipi"] == tip) & (c["model"] == mod)] if c is not None else pd.DataFrame()
+            if len(f_):
+                pd_ = p_bicim(f_.iloc[0]["p_delong"])
+                hucre += [etki_ga(*f_.iloc[0][["auroc_farki", "alt_95", "ust_95"]], 3, oran=False),
+                          f"p {pd_}" if pd_.startswith("<") else f"p = {pd_}"]
+            else:
+                hucre += ["–", "–"]
+            satirlar.append(hucre)
+    apa_tablo("E7_charlsonlu_model.docx", "E7",
+              T("Duyarlılık: Charlson indeksi eklenmiş tahmin modelleri", "Sensitivity: prediction models with the Charlson index added"),
+              [T("Model", "Model"), T(f"AUROC, birincil ({GA})", f"AUROC, primary ({GA})"),
+               T(f"AUROC, Charlson eklenmiş ({GA})", f"AUROC, Charlson added ({GA})"),
+               T(f"Fark ({GA})", f"Difference ({GA})"), "p (DeLong)"], satirlar,
+              T("Birincil modeller Charlson indeksi ve bileşenleri (diyabet, periferik damar hastalığı, kalp yetmezliği) "
+                "olmadan kuruldu; bunlar taburculukta kodlanan tanılardan gelir ve 72. saatte bilinmez (bilgi sızıntısı). "
+                "Charlson eklenmiş modeller aynı katlar, aynı dönemsel bölme ve aynı hiperparametre aramasıyla eğitildi; GA "
+                "aynı bootstrap örneklemlerinden. Fark = Charlson eklenmiş − birincil; GA DeLong standart hatasından.",
+                "Primary models excluded the Charlson index and its components (diabetes, peripheral vascular disease, "
+                "heart failure), which are derived from diagnoses coded at discharge and are unknown at hour 72 "
+                "(information leakage). Models with Charlson were trained with the same folds, period split and "
+                "hyperparameter search; CIs from the same bootstrap samples. Difference = Charlson added − primary; CI from "
+                "the DeLong standard error."))
+
+
 # ---------------------------------------------------------------
 # Sekiller
 # ---------------------------------------------------------------
@@ -1100,7 +1147,7 @@ def s7():
 
 print(f"Kaynak: {kaynak}  Hedef: {hedef}  Dil: {DIL}")
 for ad, f in [("ETIKET", etiket_kontrol), ("T1", t1), ("T2", t2), ("T3", t3), ("T4", t4), ("T5", t5), ("T6", t6), ("E1", e1), ("E2", e2), ("E3", e3),
-              ("E4", e4), ("E5", e5), ("E6", e6), ("S1", s1), ("S2", s2), ("S3", s3), ("S4", s4), ("S5", s5), ("S6", s6), ("S7", s7)]:
+              ("E4", e4), ("E5", e5), ("E6", e6), ("E7", e7), ("S1", s1), ("S2", s2), ("S3", s3), ("S4", s4), ("S5", s5), ("S6", s6), ("S7", s7)]:
     calistir(ad, f)
 pd.DataFrame(atlanan, columns=["cikti", "neden"]).to_csv(hedef / "09z_atlananlar.csv", index=False, encoding="utf-8-sig")
 if etiketsiz:

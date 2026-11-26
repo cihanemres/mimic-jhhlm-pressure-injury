@@ -186,7 +186,7 @@ Bu kuralların tamamı `code/kurallar.py` dosyasındadır ve yöntem bölümünd
   - `06j_donem_hr.csv`: `survSplit` ile takip 72–168 saat ve >168 saat olarak bölünür; JH-HLM grupları için dönem bazında HR ve dönem × maruziyet etkileşimi (>168 HR / 72–168 HR oranı, p). `n` ve `olay` ilk atanmış setten (ikinci dönemde n = 168. saatte risk altındaki yatış).
   - `06e3_schoenfeld_jhhlm.png/.svg`: ilk atanmış set, jh_4_5 ve jh_6_8 için yumuşatılmış beta(t) (doğal spline, 4 sd) ve %95 GA bandı; tek tek artık noktaları çizilmez, eğri zamanın 5.–95. yüzdeliği arasındadır. Kesikli çizgi sabit HR katsayısı.
   - **VIF** Python'da, birincil model, ilk atanmış veri seti (`06f_vif.csv`).
-- **Duyarlılık:** (a) Fine-Gray (R, `survival::finegray` + `coxph`, aynı atanmış veri setleri ve terimler; ölüm ve canlı taburculuk yarışan olay); (b) evre 2 ve üstü sonuç; (c) 72–168 saat penceresi, lojistik regresyon (OR); (d) BILINMIYOR hariç sonuç (olay zamanı bilinen evreli ilk kayıt); (e) albümin eklenmiş (0–72 saatteki en düşük); (f) önleyici girişimler eklenmiş (tedavi edici yatak, basınç azaltıcı cihaz, pozisyon değiştirme sıklığı); (g) tam kayıtlı analiz; (h) JH-HLM sürekli; (i) orantılı hazard varsayımını sağlamayan karıştırıcılar için × log(saat) etkileşimi (`tt`) eklenmiş model, strata birim × yıl, yalnızca JH-HLM HR'leri (R, `06c_ph.R`, `analiz_kodu = i_tt_log_zaman`). Karıştırıcılar elle seçilmez: aynı çalıştırmada `06e2`'deki cox.zph terim testinde `p_birlesik_d2 < 0,05` olanlar alınır (JH-HLM terimleri ve GLOBAL hariç; JH-HLM'nin ihlali 06j'de dönem bölmeyle ele alınır). Seçilen liste 06d'nin `model` sütununa yazılır ve 09 Tablo 3 notunu buradan üretir.
+- **Duyarlılık:** (a) Fine-Gray (R, `survival::finegray` + `coxph`, aynı atanmış veri setleri ve terimler; ölüm ve canlı taburculuk yarışan olay); (b) evre 2 ve üstü sonuç; (c) 72–168 saat penceresi, lojistik regresyon (OR); (d) BILINMIYOR hariç sonuç (olay zamanı bilinen evreli ilk kayıt); (e) albümin eklenmiş (0–72 saatteki en düşük); (f) önleyici girişimler eklenmiş (tedavi edici yatak, basınç azaltıcı cihaz, pozisyon değiştirme sıklığı); (g) tam kayıtlı analiz; (h) JH-HLM sürekli; (i) orantılı hazard varsayımını sağlamayan karıştırıcılar için × log(saat) etkileşimi (`tt`) eklenmiş model, strata birim × yıl, yalnızca JH-HLM HR'leri (R, `06c_ph.R`, `analiz_kodu = i_tt_log_zaman`). Karıştırıcılar elle seçilmez: aynı çalıştırmada `06e2`'deki cox.zph terim testinde `p_birlesik_d2 < 0,05` olanlar alınır (JH-HLM terimleri ve GLOBAL hariç; JH-HLM'nin ihlali 06j'de dönem bölmeyle ele alınır). Seçilen liste 06d'nin `model` sütununa yazılır ve 09 Tablo 3 notunu buradan üretir. (k) Charlson (`charlson_yassiz`) karıştırıcılardan çıkarılmış birincil Cox modeli (`analiz_kodu = k_charlsonsuz`): Charlson taburculukta kodlanan tanılardan gelir, 72. saatte bilinmez.
 - **Kümülatif insidans:** JH-HLM grubuna göre Aalen-Johansen (ölüm ve canlı taburculuk yarışan olay; idari sansür sansür). Güven aralığı yüzdelik bootstrap (`--bootstrap`, 1000). Zaman ekseni 72. saatten sonraki gün (0–25; 25. gün = girişten sonraki 28. gün).
 - **Model 1–4 karşılaştırması (ikincil):** 72–168 saat yeni basınç yarası, lojistik regresyon, yalnızca o modelin değişkenleri (Model 1 Braden toplam, Model 2 JH-HLM grubu, Model 3 ikisi, Model 4 mobilite dışı Braden + JH-HLM; Braden skorları 0–72 saatteki en düşük). Dört modelin değişkenleri tam olan ortak örneklem. Tahminler 10 katlı tabakalı çapraz doğrulamadan; AUROC için yüzdelik bootstrap %95 GA, AUROC farkı için DeLong testi ve bootstrap GA, kalibrasyon eğimi (y ~ logit p), kalibrasyon kesişimi (logit p offset), Brier skoru.
 - **Çıktı biçimi:** sayılar yuvarlanmadan, nokta ondalıklı ham değer. Her model satırında `analiz_tipi` (birincil / duyarlılık / ikincil). Demoda modeller yakınsamaz; hata veren analizler `06z_hatalar.csv` dosyasına yazılır, akış sürer.
@@ -198,6 +198,7 @@ Bu kuralların tamamı `code/kurallar.py` dosyasındadır ve yöntem bölümünd
 - **Özellikler:** 05'teki tüm değişkenler. Hariç tutulanlar:
   - kimlikler;
   - sonuç ve zaman değişkenleri (`sure_saat*`, `olay_tipi*`, `yeni_by_72_168*`);
+  - Charlson ve bileşenleri (`charlson`, `charlson_yassiz`, `diyabet`, `periferik_damar`, `kalp_yetmezligi`): taburculukta kodlanan ICD tanılarından gelir, 72. saatte bilinmez (bilgi sızıntısı). Charlson'lı sürüm yalnızca duyarlılık analizidir (aşağıda);
   - `anchor_year_group` (dönemsel bölmenin değişkeni);
   - AM-PAC (dolu %6).
 
@@ -218,6 +219,7 @@ Bu kuralların tamamı `code/kurallar.py` dosyasındadır ve yöntem bölümünd
   - Her Braden kesim noktasının (≤ 18, ≤ 14, ≤ 12) duyarlılığında modelin özgüllüğü: ROC eğrisinde modelin duyarlılığının ilk kez bu değere ulaştığı nokta (`ozgulluk_braden<k>_duyarliliginda`).
   - Her kesim noktası için: AUROC, duyarlılık, özgüllük, pozitif ve negatif kestirim değeri (`ppd`, `npd`).
   - AUROC farkı DeLong testiyle hesaplanır; GA DeLong standart hatasından (`07c_auroc_farki.csv`). Karşılaştırmalar: üç model − Braden toplam lojistik; XGBoost − L2 lojistik; Random Forest − L2 lojistik.
+- **Duyarlılık, Charlson'lı modeller:** üç model (L2 lojistik, Random Forest, XGBoost) Charlson ve bileşenleri eklenerek aynı dış katlarla, aynı dönemsel bölmeyle ve aynı hiperparametre aramasıyla yeniden eğitilir. Metrikler `07b_metrikler_charlsonlu.csv` (07b ile aynı sütunlar, aynı bootstrap örneklemleri); Charlson'lı − birincil AUROC farkı (DeLong) `07c_auroc_farki_charlsonlu.csv`. SHAP, grafikler, karar eğrisi, Braden kesim noktaları ve alt gruplar yalnızca birincil (Charlson'sız) modellerden. Modeller `ozel/07_modeller/` altında `charlsonlu_` önekiyle; `07e_hiperparametreler.csv`'de `ozellik_seti` sütunu (`birincil` / `charlsonlu`).
 - **Grafikler** (PNG ve SVG):
   - ROC ve PR eğrileri (üç Braden kesim noktası nokta olarak);
   - kalibrasyon: tahmin ondalıklarına göre gruplanmış; 5'ten az yatışlı grup çizilmez;
@@ -268,7 +270,7 @@ Bütün çıktılarda `analiz_tipi = kesfedici`. Bu analiz önceden belirlenmiş
 |---|---|---|
 | T1 Kohort özellikleri, JH-HLM grubuna göre | `T1_kohort_ozellikleri.docx` | `06a_tablo1_jhhlm.csv` |
 | T2 Birincil Cox: genel HR, strata birim × dönem HR, dönem bazında HR ve etkileşim p, sürekli etki, E-değerleri | `T2_birincil_cox.docx` | `06d_modeller.csv` (`birincil`, `birincil_strata_birim_yil`, `h_jh_surekli`, `birincil_e_degeri_*`), `06j_donem_hr.csv` |
-| T3 Duyarlılık analizleri (a–j) | `T3_duyarlilik.docx` | `06d_modeller.csv`, `06i_fine_gray.csv` |
+| T3 Duyarlılık analizleri (a–k) | `T3_duyarlilik.docx` | `06d_modeller.csv`, `06i_fine_gray.csv` |
 | T4 Model performansı ve DeLong farkları | `T4_model_performansi.docx` | `07b_metrikler.csv`, `07c_auroc_farki.csv` |
 | T5 Braden kesim noktaları ve aynı duyarlılıkta özgüllük | `T5_braden_kesim.docx` | `07b_metrikler.csv` |
 | T6 Mobilite kümeleri: tanım, büyüklük, sonuç, Cox ve dönem HR, bakım planı | `T6_mobilite_kumeleri.docx` | `08c_kume_yorunge.csv`, `08d2_kume_sonuc_ozeti.csv`, `08e_kume_cox.csv`, `08h_kume_donem_hr.csv` |
@@ -278,6 +280,7 @@ Bütün çıktılarda `analiz_tipi = kesfedici`. Bu analiz önceden belirlenmiş
 | E4 k = 3 duyarlılığı | `E4_k3_duyarlilik.docx` | `08g_k3_duyarlilik.csv` |
 | E5 itemid listesi (onaylanan ve gerekçeli reddedilen; kayıt sayıları yok) | `E5_itemid_listesi.docx` | `config/itemids_onayli.csv` |
 | E6 Kümelenmemiş ve robust (hasta kümesi) GA yan yana | `E6_robust_karsilastirma.docx`, `.csv` | `06d_modeller.csv`, `06i_fine_gray.csv`, `06j_donem_hr.csv`, `08e_kume_cox.csv`, `08h_kume_donem_hr.csv` (`*_naif` sütunları) |
+| E7 Duyarlılık: Charlson eklenmiş tahmin modelleri, AUROC karşılaştırması | `E7_charlsonlu_model.docx` | `07b_metrikler.csv`, `07b_metrikler_charlsonlu.csv`, `07c_auroc_farki_charlsonlu.csv` |
 | S1 Kohort akış şeması (STROBE/RECORD; dışlananı olmayan adım çizilmez) | `S1_kohort_akisi.png/.svg` | `04a_kohort_akisi.csv` |
 | S2 Kümülatif insidans, JH-HLM gruplarına göre (yayımlanan günlerde nokta ve %95 GA, risk altındaki sayılar) | `S2_kumulatif_insidans.png/.svg` | `06c_kumulatif_insidans.csv` |
 | S3 Dönem bazında HR orman grafiği | `S3_donem_hr_orman.png/.svg` | `06j_donem_hr.csv`, `08h_kume_donem_hr.csv` (küme adı `08c`) |

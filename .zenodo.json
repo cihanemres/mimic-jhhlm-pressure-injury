@@ -1,0 +1,13 @@
+{
+  "title": "Analysis code: Early mobility and incident pressure injury in the ICU (MIMIC-IV)",
+  "upload_type": "software",
+  "creators": [
+    {
+      "name": "Şahin, Cihan Emre",
+      "affiliation": "Tokat Gaziosmanpaşa University",      "orcid": "0009-0005-1178-2663"
+    }
+  ],
+  "license": "MIT",
+  "description": "Analysis code for a retrospective cohort study of JH-HLM mobility and incident ICU pressure injury in MIMIC-IV 3.1. No patient data are included; MIMIC-IV requires credentialed access via PhysioNet.",
+  "keywords": ["MIMIC-IV", "pressure injury", "mobility", "JH-HLM", "survival analysis", "machine learning"]
+}
