@@ -37,6 +37,21 @@ def delong(y, p1, p2):
     return fark, se, 2 * stats.norm.sf(abs(fark) / se) if se > 0 else np.nan
 
 
+def kume_bootstrap(y, grup, tekrar, rng):
+    """Hasta duzeyinde (kume) bootstrap: her tekrarda gruplar (subject_id) yerine koyarak cekilir, secilen her
+    grubun tum satirlari cekildigi kadar alinir. Yalnizca olay ya da yalnizca olaysiz iceren orneklem atilir.
+    Donus: satir indeksi dizilerinin listesi (y ile ayni sirada indeksler)."""
+    _, ters = np.unique(grup, return_inverse=True)
+    k = ters.max() + 1
+    satir = np.arange(len(y))
+    boot = []
+    for _ in range(tekrar):
+        i = np.repeat(satir, np.bincount(rng.integers(0, k, k), minlength=k)[ters])
+        if 0 < y[i].sum() < len(i):
+            boot.append(i)
+    return boot
+
+
 def smd_degeri(pay, payda):
     """Standartlastirilmis fark; payda 0 ise (iki grupta da varyans yok) tanimsiz -> bos."""
     return pay / payda if payda > 0 else np.nan

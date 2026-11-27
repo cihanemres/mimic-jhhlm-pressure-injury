@@ -19,7 +19,7 @@ Ciktilar (paylasilabilir, kucuk hucre gizli):
     07a_ozellikler.csv          ozellik listesi ve eksik yuzdesi
     07b_metrikler.csv           AUROC, AUPRC, Brier, kalibrasyon egimi/kesisimi, her Braden kesim noktasinin
                                 duyarliliginda ozgulluk; kesim noktalari icin duyarlilik, ozgulluk, PPD, NPD;
-                                1000 bootstrap %95 GA; belirleme: onceden_belirlenmis / sonradan_eklenen
+                                1000 hasta duzeyinde bootstrap %95 GA; belirleme: onceden_belirlenmis / sonradan_eklenen
     07c_auroc_farki.csv         AUROC farki (DeLong): modeller - Braden toplam lojistik; XGBoost ve RF - L2 lojistik
     07d_alt_gruplar.csv         cinsiyet, yas grubu, birlestirilmis birim icin AUROC
     07e_hiperparametreler.csv   secilen hiperparametreler (dis kat / donemsel)
@@ -51,7 +51,7 @@ import warnings
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from istatistik_ortak import delong  # noqa: E402
+from istatistik_ortak import delong, kume_bootstrap  # noqa: E402
 from kurallar import SEYREK_BIRIM  # noqa: E402
 from mimic_db import cikti_klasorleri, kucuk_hucre_gizle  # noqa: E402
 
@@ -330,7 +330,7 @@ def kesim_olcumleri(y_, kb):
 
 
 def ga(fonk, n, boot_i):
-    """Nokta tahmini ve yuzdelik bootstrap %95 GA (her metrik icin)."""
+    """Nokta tahmini ve hasta duzeyinde (kume) yuzdelik bootstrap %95 GA (her metrik icin)."""
     nokta = fonk(np.arange(n))
     tekrar = pd.DataFrame([fonk(i) for i in boot_i], columns=list(nokta))
     return [{"metrik": k, "deger": v, "alt_95": tekrar[k].quantile(.025), "ust_95": tekrar[k].quantile(.975)}
@@ -341,8 +341,7 @@ metrik, farklar, altlar, metrik_ch, farklar_ch = [], [], [], [], []
 for tip, (ind, tah) in tahminler.items():
     try:
         yt, kt = y[ind], {k: kb[ind] for k, kb in kesim.items()}
-        boot_i = [i for i in (rng.integers(0, len(yt), len(yt)) for _ in range(a.bootstrap))
-                  if 0 < yt[i].sum() < len(i)]
+        boot_i = kume_bootstrap(yt, grup[ind], a.bootstrap, rng)
         temel = {"analiz_tipi": tip, "n": len(yt), "olay": int(yt.sum()), "bootstrap_tekrar": len(boot_i)}
         for ad, pr in tah.items():
             metrik += [{**temel, "model": ad, **r}
@@ -372,8 +371,7 @@ for tip, (ind, tah) in tahminler.items():
             for ag, m in alt_grup.iloc[ind].groupby(deg, observed=True).indices.items():
                 ya = yt[m]
                 yeter = min(ya.sum(), (1 - ya).sum()) >= 5
-                bi = [i for i in (rng.integers(0, len(ya), len(ya)) for _ in range(a.bootstrap))
-                      if 0 < ya[i].sum() < len(i)] if yeter else []
+                bi = kume_bootstrap(ya, grup[ind][m], a.bootstrap, rng) if yeter else []
                 for ad, pr in tah.items():
                     au = [roc_auc_score(ya[i], pr[m][i]) for i in bi]
                     altlar.append({"analiz_tipi": tip, "alt_grup_degiskeni": deg, "alt_grup": ag, "model": ad,

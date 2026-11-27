@@ -176,7 +176,7 @@ def lab(sozluk, k):
 _ka = Path("config/kume_adlari.csv")
 KUME_ADLARI = ({(str(r.k), r.kume): r for r in pd.read_csv(_ka, dtype=str, encoding="utf-8-sig").itertuples()}
                if _ka.exists() else {})
-KUME_AD.update({r.ad_tr: (r.ad_tr, r.ad_en) for r in KUME_ADLARI.values()})  # 08'in ad_onayli'si (ad_tr) -> en
+KUME_AD.update({str(r.ad_tr): (str(r.ad_tr), str(r.ad_en)) for r in KUME_ADLARI.values()})  # 08'in ad_onayli'si (ad_tr) -> en
 _ka_uyari = set()
 
 
@@ -584,15 +584,15 @@ def t4():
               sut, satirlar,
               T("Tahminler 0–72 saat verileriyle. İç doğrulama: hasta düzeyinde 5 katlı iç içe çapraz doğrulama, metrikler "
                 "birleştirilmiş kat dışı tahminlerde. Dönemsel doğrulama: referans yıl grubu 2008–2016 eğitim, 2017–2022 "
-                "test; referans yıl grubu takvim yılı değil, kaydırılmış tarihlerin düştüğü dönemdir. GA 1000 yüzdelik "
-                "bootstrap; AUROC farkının GA'sı DeLong standart hatasından. Modeller ağırlıksız (dengesizlik düzeltmesi yok). "
+                "test; referans yıl grubu takvim yılı değil, kaydırılmış tarihlerin düştüğü dönemdir. GA 1000 tekrarlı hasta düzeyinde (küme) "
+                "yüzdelik bootstrap; AUROC farkının GA'sı DeLong standart hatasından. Modeller ağırlıksız (dengesizlik düzeltmesi yok). "
                 "Charlson indeksi ve bileşenleri (taburculukta kodlanan tanılar, 72. saatte bilinmez) modellere girmedi; "
                 "eklendiğinde AUROC Ek Tablo E7'de. "
                 "AUPRC = kesinlik-duyarlılık eğrisi altındaki alan; AUROC = ROC eğrisi altındaki alan.",
                 "Predictions use data from hours 0–72. Internal validation: patient-level 5-fold nested cross-validation; "
                 "metrics on pooled out-of-fold predictions. Period validation: anchor_year_group 2008–2016 for training and "
                 "2017–2022 for testing; anchor_year_group is not a calendar year but the period into which the shifted dates "
-                "fall. CIs from 1000 percentile bootstrap replicates; CI of the AUROC difference from the DeLong standard "
+                "fall. CIs from 1000 patient-level (cluster) percentile bootstrap replicates; CI of the AUROC difference from the DeLong standard "
                 "error. Models are unweighted (no class-imbalance correction). The Charlson index and its components (diagnoses "
                 "coded at discharge, unknown at hour 72) were not used as predictors; AUROC with them added is in "
                 "Supplementary Table E7. AUPRC = area under the precision-recall curve; "

@@ -29,7 +29,8 @@ Bolumler (--bolumler, varsayilan hepsi):
                                   var/yok); koddan (05) uretilir, veri gerekmez
     10z_hatalar.csv
 
-Bootstrap (07 ile ayni): yatis duzeyinde yuzdelik bootstrap (yatislar yerine koyarak cekilir).
+Bootstrap (07 ile ayni, istatistik_ortak.kume_bootstrap): hasta duzeyinde (kume) yuzdelik bootstrap; subject_id'ler
+yerine koyarak cekilir, secilen hastalarin tum yatislari alinir.
 
 Kullanim:
     python code/10_makale2_ek.py --cikti outputs_tam
@@ -41,7 +42,7 @@ import warnings
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from istatistik_ortak import delong  # noqa: E402
+from istatistik_ortak import delong, kume_bootstrap  # noqa: E402
 from kurallar import (BRADEN_ITEMID, LAB_EN_KOTU, MARUZIYET_SAAT, PENCERE_SAAT, SABIT_PENCERE_BITIS,  # noqa: E402
                       SEYREK_BIRIM, SOFA_SAAT)
 from mimic_db import cikti_klasorleri, kucuk_hucre_gizle  # noqa: E402
@@ -285,8 +286,7 @@ def degerlendir(on, sonuc, model_karsilastirma):
         try:
             yt = y[ind]
             bir = birincil_tahmin(tip, ind)
-            boot_i = [i for i in (rng.integers(0, len(yt), len(yt)) for _ in range(a.bootstrap))
-                      if 0 < yt[i].sum() < len(i)]
+            boot_i = kume_bootstrap(yt, grup[ind], a.bootstrap, rng)
             temel = {"analiz_tipi": tip, "n": len(yt), "olay": int(yt.sum()), "bootstrap_tekrar": len(boot_i)}
             for surum, tahs in [("duyarlilik", tah), ("birincil (ayni yatislar)", {m: bir[m] for m in tah})]:
                 for ad, pr in tahs.items():
