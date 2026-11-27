@@ -88,6 +88,9 @@ python code/07_ml.py         --cikti outputs_tam
 python code/08_kumeleme.py   --veri <MIMIC_DIR> --cikti outputs_tam
 python code/09_makale.py     --cikti outputs_tam --dil tr
 python code/09_makale.py     --cikti outputs_tam --dil en
+python code/10_makale2_ek.py --cikti outputs_tam
+python code/09b_makale2_ek.py --cikti outputs_tam --dil tr
+python code/09b_makale2_ek.py --cikti outputs_tam --dil en
 ```
 
 Komutlar PowerShell içindir: tırnaklı yolla bir programı çalıştırmak için başa `&` (çağrı operatörü) gerekir; cmd'de `&` olmadan yazılır. `python`, sanal ortam etkin değilse `.venv\Scripts\python` olmalıdır.
@@ -291,6 +294,17 @@ Bütün çıktılarda `analiz_tipi = kesfedici`. Bu analiz önceden belirlenmiş
 
 - **S2:** `06c` yalnızca 1, 3, 7, 14, 21 ve 25. günleri yayımladığı için eğri bu noktalar arasında düz çizgiyle birleştirilir; tam basamaklı eğri yayımlanmaz (günlük artışlar küçük sayılar verebilir).
 - **S4–S5 için 07 eğri noktaları** (`07h_egri_noktalari.csv`, `--yalnizca-degerlendirme` ile de yazılır): ROC, her model ve doğrulama türü için 0–1 arası 100 noktalık sabit 1 − özgüllük ızgarasında doğrusal enterpole duyarlılık (`egri = roc`) ve Braden kesim noktaları (`roc_kesim`); kalibrasyon ondalık dilimleri, ortalama tahmin ve gözlenen oran (5'ten az olaylı ya da olaysız sayısı 1–4 olan dilim gizli ve çizilmez); karar eğrisi net faydası, eşik 0,02–0,30, 0,01 adım (modeller, Braden ≤ 12, ≤ 14, ≤ 18, `herkese`, `hic kimseye`). Tek tek tahmin değeri ya da her eşikteki ham ROC noktası yazılmaz. 07'nin kendi kalibrasyon grafiği de aynı kuralla çizilir. Sütunlar: `analiz_tipi`, `egri`, `model`, `x`, `y`, `n`, `olay`, `belirleme`.
+
+**Makale 2 ek tabloları (`09b_makale2_ek.py --dil tr|en`):** 10'dan sonra çalıştırılır; yalnızca `paylasilabilir/` okunur, çıktılar `<cikti>/makale2_<dil>/` klasörüne yazılır (09 ile aynı biçim kuralları; atlananlar `09bz_atlananlar.csv`). Makale 2'de E1 ve E2, 09'un E3 (alt gruplar) ve E5 (itemid) tablolarıdır.
+
+| Çıktı | Dosya | Kaynak (`paylasilabilir/`) |
+|---|---|---|
+| E3 Modele giren değişkenlerin ölçüm penceresi ve özeti (Charlson: yalnızca tanımlayıcı) | `E3_degisken_zamani.docx` | `10g_degisken_zamani.csv` |
+| E4 Seçilen hiperparametreler, özellik sayısı, kodlama (dönemsel eğitim modelleri) | `E4_model_ayarlari.docx` | `10f_model_ayarlari.csv` |
+| E5 72–168 saat penceresinde yatışların durumu (iç doğrulama ve dönemsel test) | `E5_pencere_bilesimi.docx` | `10a_pencere_bilesimi.csv` |
+| E6 Duyarlılık: birincil, ölümler çıkarılmış, SOFA bileşenleri, Charlson eklenmiş; AUROC, fark, DeLong p; SOFA eksiklik oranı notta | `E6_duyarlilik.docx` | `07b_metrikler.csv`, `07b_metrikler_charlsonlu.csv`, `07c_auroc_farki_charlsonlu.csv`, `10b_*`, `10c_*`, `10c2_sofa_eksiklik.csv` |
+
+AUROC farkının GA sınırlarından biri üç ondalıkta 0,000 görünüyorsa fark dört ondalıkla yazılır.
 
 ### TRIPOD+AI kontrol listesi taslağı
 
