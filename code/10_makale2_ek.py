@@ -71,7 +71,6 @@ p.add_argument("--bolumler", default="abcdefg", help="Calistirilacak bolumler (a
 a = p.parse_args()
 BOL = set(a.bolumler)
 ozel, paylas = cikti_klasorleri(a.cikti)
-rng = np.random.default_rng(a.tohum)
 model_klasor = ozel / "07_modeller"
 for b_ in BOL:  # yalnizca calisan bolumlerin eski ciktilari silinir
     for eski in paylas.glob(f"10{b_}*"):
@@ -282,6 +281,7 @@ def ga(fonk, n, boot_i):
 def degerlendir(on, sonuc, model_karsilastirma):
     """Duyarlilik ve birincil (ayni yatislar) metrikleri ayni bootstrap orneklemleriyle; DeLong farklari."""
     metrik, fark = [], []
+    rng = np.random.default_rng(a.tohum)  # her bolumun bootstrap'i kendi RNG'si: b calissa da c ayni kalir
     for tip, (ind, tah) in sonuc.items():
         try:
             yt = y[ind]

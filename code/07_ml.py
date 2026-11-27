@@ -83,7 +83,8 @@ p.add_argument("--yalnizca-degerlendirme", action="store_true",
                help="Egitim yok: ozel/07_modeller/ altindaki kayitli modellerle yalnizca degerlendirme")
 a = p.parse_args()
 ozel, paylas = cikti_klasorleri(a.cikti)
-rng = np.random.default_rng(a.tohum)
+rng = np.random.default_rng(a.tohum)  # bootstrap
+rng_shap = np.random.default_rng(a.tohum)  # SHAP alt orneklemi; bootstrap'tan bagimsiz
 model_klasor = ozel / "07_modeller"
 model_klasor.mkdir(exist_ok=True)
 DEGERLENDIRME = a.yalnizca_degerlendirme
@@ -523,7 +524,7 @@ try:
         raise ValueError("donemsel dogrulama yok")
     ind, tah = tahminler["donemsel_dogrulama"]
     en_iyi = max(AGAC, key=lambda ad: roc_auc_score(y[ind], tah[ad]))
-    secim = np.sort(rng.choice(ind, min(len(ind), 2000), replace=False))  # RF SHAP suresi icin en fazla 2000
+    secim = np.sort(rng_shap.choice(ind, min(len(ind), 2000), replace=False))  # RF SHAP suresi icin en fazla 2000
     Xs = X.iloc[secim]
     model = egitilmis[("donemsel_dogrulama", en_iyi)]
     if en_iyi == "Random Forest":
