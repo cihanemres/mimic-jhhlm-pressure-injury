@@ -10,6 +10,8 @@ tt duyarliligi ve Schoenfeld grafigi R'da: code/06c_ph.R (06d'ye satir ekler). B
 
 Kullanim:
     python code/06_istatistik.py --cikti outputs_tam
+    python code/06_istatistik.py --cikti outputs_tam --yalnizca-model-karsilastirma   (yalnizca 06g ve 06h; 06b/06c
+                                                                                      gerekmez)
 """
 import argparse
 import sys
@@ -19,8 +21,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from kurallar import BMI_ARALIK, SEYREK_BIRIM  # noqa: E402
 from istatistik_ortak import (SONUC_KORUNAN, aalen_johansen, capraz_gizle, cif_noktada, delong,  # noqa: E402
-                              kumulatif_insidans_capraz, rubin, sonuc_gizli_gruplar, tablo1, tablo1_fark_gizle,
-                              tablo1_gizli_mi, tablo1_tamamlayici)
+                              kume_bootstrap, kumulatif_insidans_capraz, rubin, sonuc_gizli_gruplar, tablo1,
+                              tablo1_fark_gizle, tablo1_gizli_mi, tablo1_tamamlayici)
 from mimic_db import cikti_klasorleri, kucuk_hucre_gizle  # noqa: E402
 
 import matplotlib  # noqa: E402
@@ -43,12 +45,16 @@ p.add_argument("--cikti", default="outputs", help="Ciktilarin klasoru (05'in yaz
 p.add_argument("--m", type=int, default=20, help="Coklu atama sayisi")
 p.add_argument("--bootstrap", type=int, default=1000, help="Bootstrap tekrar sayisi")
 p.add_argument("--tohum", type=int, default=2026, help="Rastgele sayi tohumu")
+p.add_argument("--yalnizca-model-karsilastirma", action="store_true",
+               help="Yalnizca Model 1-4 karsilastirmasi (06g, 06h); diger 06* dosyalari silinmez")
 a = p.parse_args()
 ozel, paylas = cikti_klasorleri(a.cikti)
 rng = np.random.default_rng(a.tohum)
 # Onceki calistirmanin ciktilarini sil: bu calistirmada hata veren bir analizin eski dosyasi kalmasin
 # (06i, 06e2, 06e3, 06j ve 06d'deki R satirlari R betikleriyle yeniden uretilir)
-for eski in list(paylas.glob("06*")) + [ozel / "06_atanmis_veri.csv.gz"]:
+eskiler = ([paylas / "06g_model_karsilastirma.csv", paylas / "06h_auroc_farki.csv"] if a.yalnizca_model_karsilastirma
+           else list(paylas.glob("06*")) + [ozel / "06_atanmis_veri.csv.gz"])
+for eski in eskiler:
     eski.unlink(missing_ok=True)
 
 # ---------------------------------------------------------------
@@ -108,6 +114,66 @@ satir_model, satir_hata = [], []
 def hata_kaydet(analiz, e):
     print(f"  [HATA] {analiz}: {type(e).__name__}: {e}")
     satir_hata.append({"analiz": analiz, "hata": f"{type(e).__name__}: {e}"})
+
+
+# ---------------------------------------------------------------
+# Model 1-4 karsilastirmasi (ikincil; 72-168 saat, lojistik, 10 katli capraz dogrulama tahminleri). Bootstrap hasta
+# duzeyinde (istatistik_ortak.kume_bootstrap) ve kendi RNG'siyle: --yalnizca-model-karsilastirma ile ayni sonuc
+# ---------------------------------------------------------------
+
+MODELLER = {
+    "Model 1: Braden toplam": ["braden_toplam_en_dusuk"],
+    "Model 2: JH-HLM": MARUZIYET,
+    "Model 3: Braden toplam + JH-HLM": ["braden_toplam_en_dusuk"] + MARUZIYET,
+    "Model 4: mobilite disi Braden + JH-HLM": ["braden_mobilite_disi_en_dusuk"] + MARUZIYET,
+}
+y_sut = "yeni_by_72_168"
+ortak = d.dropna(subset=sorted({s for v in MODELLER.values() for s in v}) + [y_sut])
+y = ortak[y_sut].to_numpy().astype(int)
+karsilastirma, ciftler, tahmin = [], [], {}
+try:
+    katman = int(min(10, y.sum(), (1 - y).sum()))
+    if katman < 2:
+        raise ValueError(f"72-168 saat olay sayisi capraz dogrulama icin yetersiz ({int(y.sum())})")
+    cv = StratifiedKFold(n_splits=katman, shuffle=True, random_state=a.tohum)
+    for ad, terimler in MODELLER.items():
+        tahmin[ad] = cross_val_predict(LogisticRegression(C=np.inf, max_iter=1000), ortak[terimler], y,
+                                       cv=cv, method="predict_proba")[:, 1]
+    boot_i = kume_bootstrap(y, ortak[KUME].to_numpy(), a.bootstrap, np.random.default_rng(a.tohum))
+    for ad, pr in tahmin.items():
+        lp = np.log(np.clip(pr, 1e-12, 1 - 1e-12) / (1 - np.clip(pr, 1e-12, 1 - 1e-12)))
+        egim = sm.GLM(y, sm.add_constant(lp), family=sm.families.Binomial()).fit().params[1]
+        kesisim = sm.GLM(y, np.ones((len(y), 1)), family=sm.families.Binomial(), offset=lp).fit().params[0]
+        boot = [roc_auc_score(y[i], pr[i]) for i in boot_i]
+        karsilastirma.append({"analiz_tipi": "ikincil", "model": ad, "n": len(y), "olay": int(y.sum()),
+                              "auroc": roc_auc_score(y, pr), "auroc_alt_95": np.quantile(boot, .025),
+                              "auroc_ust_95": np.quantile(boot, .975), "kalibrasyon_egimi": egim,
+                              "kalibrasyon_kesisimi": kesisim, "brier": brier_score_loss(y, pr),
+                              "bootstrap_tekrar": len(boot_i), "capraz_dogrulama_katman": katman})
+    adlar = list(tahmin)
+    for i1 in range(len(adlar)):
+        for i2 in range(i1 + 1, len(adlar)):
+            p1, p2 = tahmin[adlar[i1]], tahmin[adlar[i2]]
+            fark, _, p_d = delong(y, p1, p2)
+            boot = [roc_auc_score(y[i], p1[i]) - roc_auc_score(y[i], p2[i]) for i in boot_i]
+            ciftler.append({"analiz_tipi": "ikincil", "model_a": adlar[i1], "model_b": adlar[i2],
+                            "auroc_farki": fark, "alt_95": np.quantile(boot, .025), "ust_95": np.quantile(boot, .975),
+                            "p_delong": p_d})
+except Exception as e:
+    hata_kaydet("model_karsilastirma", e)
+kk = pd.DataFrame(karsilastirma, columns=["analiz_tipi", "model", "n", "olay", "auroc", "auroc_alt_95",
+                                         "auroc_ust_95", "kalibrasyon_egimi", "kalibrasyon_kesisimi", "brier",
+                                         "bootstrap_tekrar", "capraz_dogrulama_katman"])
+kucuk_hucre_gizle(kk, ["n", "olay"]).to_csv(paylas / "06g_model_karsilastirma.csv", index=False,
+                                             encoding="utf-8-sig")
+pd.DataFrame(ciftler, columns=["analiz_tipi", "model_a", "model_b", "auroc_farki", "alt_95", "ust_95",
+                               "p_delong"]).to_csv(paylas / "06h_auroc_farki.csv", index=False, encoding="utf-8-sig")
+if a.yalnizca_model_karsilastirma:
+    pd.DataFrame(satir_hata, columns=["analiz", "hata"]).to_csv(paylas / "06z_hatalar_model_karsilastirma.csv",
+                                                               index=False, encoding="utf-8-sig")
+    print(kk[["model", "auroc", "auroc_alt_95", "auroc_ust_95"]].to_string(index=False))
+    print(f"\n{len(satir_hata)} analizde hata (06z_hatalar_model_karsilastirma.csv). Ciktilar: {paylas}")
+    sys.exit()
 
 
 # ---------------------------------------------------------------
@@ -365,59 +431,6 @@ try:
 except Exception as e:
     hata_kaydet("vif", e)
 
-
-# ---------------------------------------------------------------
-# 6. Model 1-4 karsilastirmasi (ikincil; 72-168 saat, lojistik, 10 katli capraz dogrulama tahminleri)
-# ---------------------------------------------------------------
-
-MODELLER = {
-    "Model 1: Braden toplam": ["braden_toplam_en_dusuk"],
-    "Model 2: JH-HLM": MARUZIYET,
-    "Model 3: Braden toplam + JH-HLM": ["braden_toplam_en_dusuk"] + MARUZIYET,
-    "Model 4: mobilite disi Braden + JH-HLM": ["braden_mobilite_disi_en_dusuk"] + MARUZIYET,
-}
-y_sut = "yeni_by_72_168"
-ortak = d.dropna(subset=sorted({s for v in MODELLER.values() for s in v}) + [y_sut])
-y = ortak[y_sut].to_numpy().astype(int)
-karsilastirma, ciftler, tahmin = [], [], {}
-try:
-    katman = int(min(10, y.sum(), (1 - y).sum()))
-    if katman < 2:
-        raise ValueError(f"72-168 saat olay sayisi capraz dogrulama icin yetersiz ({int(y.sum())})")
-    cv = StratifiedKFold(n_splits=katman, shuffle=True, random_state=a.tohum)
-    for ad, terimler in MODELLER.items():
-        tahmin[ad] = cross_val_predict(LogisticRegression(C=np.inf, max_iter=1000), ortak[terimler], y,
-                                       cv=cv, method="predict_proba")[:, 1]
-    boot_i = [rng.integers(0, len(y), len(y)) for _ in range(a.bootstrap)]
-    boot_i = [i for i in boot_i if 0 < y[i].sum() < len(i)]
-    for ad, pr in tahmin.items():
-        lp = np.log(np.clip(pr, 1e-12, 1 - 1e-12) / (1 - np.clip(pr, 1e-12, 1 - 1e-12)))
-        egim = sm.GLM(y, sm.add_constant(lp), family=sm.families.Binomial()).fit().params[1]
-        kesisim = sm.GLM(y, np.ones((len(y), 1)), family=sm.families.Binomial(), offset=lp).fit().params[0]
-        boot = [roc_auc_score(y[i], pr[i]) for i in boot_i]
-        karsilastirma.append({"analiz_tipi": "ikincil", "model": ad, "n": len(y), "olay": int(y.sum()),
-                              "auroc": roc_auc_score(y, pr), "auroc_alt_95": np.quantile(boot, .025),
-                              "auroc_ust_95": np.quantile(boot, .975), "kalibrasyon_egimi": egim,
-                              "kalibrasyon_kesisimi": kesisim, "brier": brier_score_loss(y, pr),
-                              "bootstrap_tekrar": len(boot_i), "capraz_dogrulama_katman": katman})
-    adlar = list(tahmin)
-    for i1 in range(len(adlar)):
-        for i2 in range(i1 + 1, len(adlar)):
-            p1, p2 = tahmin[adlar[i1]], tahmin[adlar[i2]]
-            fark, _, p_d = delong(y, p1, p2)
-            boot = [roc_auc_score(y[i], p1[i]) - roc_auc_score(y[i], p2[i]) for i in boot_i]
-            ciftler.append({"analiz_tipi": "ikincil", "model_a": adlar[i1], "model_b": adlar[i2],
-                            "auroc_farki": fark, "alt_95": np.quantile(boot, .025), "ust_95": np.quantile(boot, .975),
-                            "p_delong": p_d})
-except Exception as e:
-    hata_kaydet("model_karsilastirma", e)
-kk = pd.DataFrame(karsilastirma, columns=["analiz_tipi", "model", "n", "olay", "auroc", "auroc_alt_95",
-                                         "auroc_ust_95", "kalibrasyon_egimi", "kalibrasyon_kesisimi", "brier",
-                                         "bootstrap_tekrar", "capraz_dogrulama_katman"])
-kucuk_hucre_gizle(kk, ["n", "olay"]).to_csv(paylas / "06g_model_karsilastirma.csv", index=False,
-                                             encoding="utf-8-sig")
-pd.DataFrame(ciftler, columns=["analiz_tipi", "model_a", "model_b", "auroc_farki", "alt_95", "ust_95",
-                               "p_delong"]).to_csv(paylas / "06h_auroc_farki.csv", index=False, encoding="utf-8-sig")
 
 # ---- Model tablosu ve hatalar ----
 md = pd.DataFrame(satir_model, columns=["analiz_tipi", "analiz_kodu", "analiz", "model", "sonuc", "etki_olcusu",
